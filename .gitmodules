@@ -1,6 +1,5 @@
 [submodule "backend"]
 	path = backend
-<<<<<<< HEAD
 	url = https://github.com/aspectxlol/lnq-backend.git
 [submodule "frontend"]
 	path = frontend
@@ -8,12 +7,3 @@
 [submodule "mobile"]
 	path = mobile
 	url = https://github.com/aspectxlol/lnq-mobile.git
-=======
-	url = ./backend
-[submodule "frontend"]
-	path = frontend
-	url = ./frontend
-[submodule "mobile"]
-	path = mobile
-	url = ./mobile
->>>>>>> c3ff26ac9de61b07b4e9cf3a17d351df98e7ffdf
