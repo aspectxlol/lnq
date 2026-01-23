@@ -1,9 +1,12 @@
 [submodule "backend"]
-	path = backend
-	url = https://github.com/aspectxlol/lnq-backend.git
+    path = backend
+    url = https://github.com/aspectxlol/lnq-backend.git
+    branch = main
 [submodule "frontend"]
-	path = frontend
-	url = https://github.com/aspectxlol/lnq-frontend.git
+    path = frontend
+    url = https://github.com/aspectxlol/lnq-frontend.git
+    branch = main
 [submodule "mobile"]
-	path = mobile
-	url = https://github.com/aspectxlol/lnq-mobile.git
+    path = mobile
+    url = https://github.com/aspectxlol/lnq-mobile.git
+    branch = main
