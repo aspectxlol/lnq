@@ -20,10 +20,7 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "types": [
-      "node",
-      "jest",
-      "mocha"
-    ]
+    "types": ["node", "jest", "mocha"],
+    "typeRoots": ["./src/types", "./node_modules/@types"]
   }
 }

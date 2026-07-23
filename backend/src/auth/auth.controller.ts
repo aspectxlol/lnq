@@ -1,53 +1,61 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
-import { type Request } from 'express';
-import { AuthService } from './auth.service';
-import { type RegisterAuthDto } from './dto/register-auth.dto';
-import { GoogleAuthGuard } from './guards/google-auth.guard';
-import { LocalAuthGuard } from './guards/local-auth.guard';
+import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import { type Request } from "express";
+import { AuthService } from "./auth.service";
+import { type RegisterAuthDto } from "./dto/register-auth.dto";
+import { GoogleAuthGuard } from "./guards/google-auth.guard";
+import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { LocalAuthGuard } from "./guards/local-auth.guard";
 
 type AuthenticatedRequest = Request & {
   user?: unknown;
 };
 
-@Controller('auth')
+@Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
+  @Post("register")
   async register(@Body() dto: RegisterAuthDto) {
-    const user = await this.authService.registerLocal(dto);
+    const authResponse = await this.authService.registerLocal(dto);
     return {
-      message: 'Registration successful',
-      user,
+      message: "Registration successful",
+      ...authResponse,
     };
   }
 
-  @Post('login')
+  @Post("login")
   @UseGuards(LocalAuthGuard)
-  login(@Req() req: AuthenticatedRequest) {
-    return {
-      message: 'Login successful',
-      user: req.user,
-    };
+  async login(@Req() req: AuthenticatedRequest) {
+    if (!req.user) {
+      return { message: "Login failed" };
+    }
+
+    return req.user;
   }
 
-  @Get('google')
+  @Get("google")
   @UseGuards(GoogleAuthGuard)
   googleAuth() {
-    return { message: 'Redirecting to Google' };
+    return { message: "Redirecting to Google" };
   }
 
-  @Get('google/callback')
+  @Get("google/callback")
   @UseGuards(GoogleAuthGuard)
   googleAuthCallback(@Req() req: AuthenticatedRequest) {
     return {
-      message: 'Google authentication successful',
-      user: req.user,
+      message: "Google authentication successful",
+      ...(req.user as { accessToken?: string; user?: unknown } | undefined),
     };
   }
 
-  @Get('me')
-  async me(@Req() req: AuthenticatedRequest) {
+  @Post("refresh")
+  async refresh(@Body() body: { refreshToken: string }) {
+    return this.authService.refreshAccessToken(body.refreshToken);
+  }
+
+  @Get("me")
+  @UseGuards(JwtAuthGuard)
+  me(@Req() req: AuthenticatedRequest) {
     return req.user ?? null;
   }
 }
