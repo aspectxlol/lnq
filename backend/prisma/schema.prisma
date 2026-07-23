@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  OWNER
+}
+
+enum ItemType {
+  PRODUCT
+  CUSTOM
+}
+
+//
+// Users
+//
+
+model User {
+  id              Int       @id @default(autoincrement())
+
+  email           String    @unique
+  passwordHash    String
+
+  firstName       String?
+  lastName        String?
+
+  phone           String?
+
+  role            Role      @default(CUSTOMER)
+
+  emailVerified   Boolean   @default(false)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  sessions        Session[]
+  orders          Order[]
+}
+
+model Session {
+  id              Int       @id @default(autoincrement())
+
+  userId          Int
+
+  refreshToken    String
+
+  expiresAt       DateTime
+
+  createdAt       DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+//
+// Products
+//
+
+model Product {
+  id              Int       @id @default(autoincrement())
+
+  name            String
+  description     String?
+
+  price           Int
+
+  imageId         String?
+
+  createdAt       DateTime  @default(now())
+
+  orderItems      OrderItem[]
+}
+
+//
+// Orders
+//
+
+model Order {
+  id              Int       @id @default(autoincrement())
+
+  userId          Int?
+
+  customerName    String
+
+  pickupDate      DateTime?
+
+  notes           String?
+
+  createdAt       DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  items OrderItem[]
+}
+
+//
+// Order Items
+//
+
+model OrderItem {
+  id              Int       @id @default(autoincrement())
+
+  orderId         Int
+
+  itemType        ItemType  @default(PRODUCT)
+
+  productId       Int?
+
+  amount          Int?
+
+  notes           String?
+
+  priceAtSale     Int?
+
+  customName      String?
+
+  customPrice     Int?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  product Product? @relation(fields: [productId], references: [id])
+}

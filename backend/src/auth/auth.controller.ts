@@ -1,42 +1,53 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { type Request } from 'express';
 import { AuthService } from './auth.service';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { type RegisterAuthDto } from './dto/register-auth.dto';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { LocalAuthGuard } from './guards/local-auth.guard';
+
+type AuthenticatedRequest = Request & {
+  user?: unknown;
+};
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post()
-  create(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.create(createAuthDto);
+  @Post('register')
+  async register(@Body() dto: RegisterAuthDto) {
+    const user = await this.authService.registerLocal(dto);
+    return {
+      message: 'Registration successful',
+      user,
+    };
   }
 
-  @Get()
-  findAll() {
-    return this.authService.findAll();
+  @Post('login')
+  @UseGuards(LocalAuthGuard)
+  login(@Req() req: AuthenticatedRequest) {
+    return {
+      message: 'Login successful',
+      user: req.user,
+    };
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  googleAuth() {
+    return { message: 'Redirecting to Google' };
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  googleAuthCallback(@Req() req: AuthenticatedRequest) {
+    return {
+      message: 'Google authentication successful',
+      user: req.user,
+    };
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+  @Get('me')
+  async me(@Req() req: AuthenticatedRequest) {
+    return req.user ?? null;
   }
 }
