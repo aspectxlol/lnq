@@ -29,6 +29,7 @@ describe("AuthController", () => {
 
     const authService = {
       registerLocal,
+      logout: jest.fn(async () => ({ success: true, message: "Logged out" })),
     } as unknown as AuthService;
 
     controller = new AuthController(authService);

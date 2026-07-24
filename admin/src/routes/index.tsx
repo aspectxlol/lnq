@@ -1,8 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '#/components/ui/button'
+import { createAuthGuard } from '#/lib/auth'
 import { toast } from 'sonner'
 
-export const Route = createFileRoute('/')({ component: Home })
+const adminGuard = createAuthGuard({
+  allowedRoles: ['STAFF', 'ADMIN', 'OWNER'],
+  loginPath: '/auth/login',
+  blockedPath: '/ur-lost-lol',
+})
+
+export const Route = createFileRoute('/')({
+  component: Home,
+  beforeLoad: adminGuard,
+})
 
 function Home() {
   async function handleLogout() {
@@ -22,6 +32,7 @@ function Home() {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('user')
+      localStorage.removeItem('rememberMe')
       toast.success('You have been logged out.')
       window.location.href = '/auth/login'
     }
@@ -31,7 +42,10 @@ function Home() {
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
       <h1 className="text-2xl font-semibold">Welcome to the admin dashboard</h1>
       <p className="text-sm text-muted-foreground">
-        You are signed in and can now log out from here.
+        You are signed in as{' '}
+        {localStorage.getItem('user') &&
+          JSON.parse(localStorage.getItem('user')!).firstName}{' '}
+        and can now log out from here.
       </p>
       <Button onClick={handleLogout}>Log Out</Button>
     </div>

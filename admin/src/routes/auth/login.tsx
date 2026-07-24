@@ -53,6 +53,8 @@ function RouteComponent() {
       setSetHighlightEmail(false)
     }
 
+    clearAuthStorage()
+
     fetch('http://localhost:3001/auth/login', {
       method: 'POST',
       headers: {
@@ -70,9 +72,28 @@ function RouteComponent() {
         return data
       })
       .then((data) => {
+        if (!data.accessToken || !data.refreshToken || !data.user) {
+          toast.custom(() => (
+            <div className="rounded-lg bg-red-500 p-4 text-white">
+              Something went wrong. Please try again later.
+            </div>
+          ))
+          clearAuthStorage()
+          throw new Error('Invalid response from server.')
+        }
+
+        if (
+          data.user.role !== 'STAFF' &&
+          data.user.role !== 'ADMIN' &&
+          data.user.role !== 'OWNER'
+        ) {
+          window.location.href = '/ur-lost-lol'
+        }
+
         localStorage.setItem('accessToken', data.accessToken)
         localStorage.setItem('refreshToken', data.refreshToken)
         localStorage.setItem('user', JSON.stringify(data.user))
+        localStorage.setItem('rememberMe', String(Boolean(rememberMe)))
 
         toast.custom(() => (
           <div className="rounded-lg bg-green-500 p-4 text-white">

@@ -5,13 +5,7 @@ import {
 } from '@tanstack/react-router'
 import { Toaster } from '#/components/ui/sonner'
 
-import type { QueryClient } from '@tanstack/react-query'
-
 import '../styles.css'
-
-interface MyRouterContext {
-  queryClient: QueryClient
-}
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
