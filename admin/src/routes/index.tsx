@@ -1,14 +1,39 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { Button } from '#/components/ui/button'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/')({ component: Home })
 
 function Home() {
+  async function handleLogout() {
+    const refreshToken = localStorage.getItem('refreshToken')
+
+    try {
+      await fetch('http://localhost:3001/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+      })
+    } catch {
+      // ignore and still clear local state
+    } finally {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      toast.success('You have been logged out.')
+      window.location.href = '/auth/login'
+    }
+  }
+
   return (
-    <div className="">
-      <h1 className="">Welcome to TanStack Start</h1>
-      <p className="">
-        Edit <code>src/routes/index.tsx</code> to get started.
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
+      <h1 className="text-2xl font-semibold">Welcome to the admin dashboard</h1>
+      <p className="text-sm text-muted-foreground">
+        You are signed in and can now log out from here.
       </p>
+      <Button onClick={handleLogout}>Log Out</Button>
     </div>
   )
 }

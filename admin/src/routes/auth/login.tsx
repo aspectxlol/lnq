@@ -15,6 +15,12 @@ function RouteComponent() {
   const rememberMeInputRef = useRef<HTMLInputElement>(null)
   const [setHighlightEmail, setSetHighlightEmail] = useState(false)
 
+  function clearAuthStorage() {
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('user')
+  }
+
   function handleSubmit(event: React.MouseEvent<HTMLButtonElement>) {
     event.preventDefault()
 
@@ -22,11 +28,6 @@ function RouteComponent() {
     const password = passwordInputRef.current?.value
     const rememberMe = rememberMeInputRef.current?.checked
 
-    console.log({
-      email,
-      password,
-      rememberMe,
-    })
     if (!email || !password) {
       // toast.error('Please enter both email and password.')
       toast.custom(() => (
@@ -82,10 +83,10 @@ function RouteComponent() {
         window.location.href = '/'
       })
       .catch((error) => {
-        console.error('Error during login:', error)
         toast.custom(() => (
           <div className="rounded-lg bg-red-500 p-4 text-white">
-            An error occurred. Please try again later.
+            {error.message || 'Login failed. Please try again.'}
+            {/* An error occurred. Please try again later. */}
           </div>
         ))
       })

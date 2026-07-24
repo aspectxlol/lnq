@@ -75,6 +75,13 @@ export class AuthController {
     return this.authService.refreshAccessToken(body.refreshToken);
   }
 
+  @Post("logout")
+  @ApiOperation({ summary: "Log out the current user" })
+  @ApiResponse({ status: 201, description: "Logged out" })
+  async logout(@Body() body: { refreshToken?: string }) {
+    return this.authService.logout(body.refreshToken);
+  }
+
   @Get("me")
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Get the authenticated user" })

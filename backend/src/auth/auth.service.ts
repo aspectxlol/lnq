@@ -161,6 +161,19 @@ export class AuthService {
     return this.buildAuthResponse(user, rotatedRefreshToken);
   }
 
+  async logout(refreshToken?: string) {
+    if (!refreshToken) {
+      return { success: true, message: "Logged out" };
+    }
+
+    const refreshTokenHash = this.hashPassword(refreshToken);
+    await this.prisma.session.deleteMany({
+      where: { refreshTokenHash },
+    });
+
+    return { success: true, message: "Logged out" };
+  }
+
   private async buildAuthResponse(user: UserRecord, newRefreshToken?: string) {
     const sanitizedUser = this.sanitizeUser(user);
     const accessToken = this.jwtService.sign({

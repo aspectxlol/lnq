@@ -62,4 +62,10 @@ describe("AuthController", () => {
       user: { id: 1, email: "bob@example.com" },
     });
   });
+
+  it("returns a logout success payload", async () => {
+    const result = await controller.logout({ refreshToken: "refresh-token" });
+
+    expect(result).toEqual({ success: true, message: "Logged out" });
+  });
 });
