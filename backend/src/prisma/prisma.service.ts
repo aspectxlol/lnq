@@ -1,6 +1,16 @@
+import "dotenv/config";
 import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient as PrismaClientBase } from "@prisma/client";
+
+function getDatabaseUrl() {
+  const rawUrl = process.env.DATABASE_URL?.trim();
+  if (!rawUrl) {
+    return "postgresql://postgres:postgres@localhost:5432/test?schema=public";
+  }
+
+  return rawUrl.replace(/^['"]|['"]$/g, "");
+}
 
 const PrismaClientRuntime =
   process.env.NODE_ENV === "test" ? class {} : PrismaClientBase;
@@ -16,9 +26,7 @@ export class PrismaService
         ? undefined
         : {
             adapter: new PrismaPg({
-              connectionString:
-                process.env.DATABASE_URL ??
-                "postgresql://postgres:postgres@localhost:5432/lnq",
+              connectionString: getDatabaseUrl(),
             }),
           },
     );
