@@ -1,10 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PrismaService } from './prisma.service';
+jest.mock("@prisma/adapter-pg", () => ({
+  PrismaPg: jest.fn().mockImplementation(() => ({})),
+}));
 
-describe('PrismaService', () => {
+jest.mock("@prisma/client", () => require("../test-utils/prisma-client.mock"));
+
+import { Test, TestingModule } from "@nestjs/testing";
+import { PrismaService } from "./prisma.service";
+
+describe("PrismaService", () => {
   let service: PrismaService;
 
   beforeEach(async () => {
+    jest.resetModules();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [PrismaService],
     }).compile();
@@ -12,7 +20,7 @@ describe('PrismaService', () => {
     service = module.get<PrismaService>(PrismaService);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 });

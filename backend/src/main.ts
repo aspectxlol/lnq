@@ -12,6 +12,11 @@ async function bootstrap() {
     new FastifyAdapter(),
   );
 
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
+
   const config = new DocumentBuilder()
     .setTitle("LnQ Ecommerce API")
     .setDescription("The LnQ Ecommerce API specification")

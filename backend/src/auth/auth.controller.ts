@@ -31,15 +31,24 @@ export class AuthController {
 
   @Post("login")
   @UseGuards(LocalAuthGuard)
-  @ApiOperation({ summary: "Log in with email/phone and password" })
+  @ApiOperation({ summary: "Log in with email and password" })
   @ApiBody({ type: LoginAuthDto })
   @ApiResponse({ status: 201, description: "Login successful" })
   async login(@Req() req: AuthenticatedRequest) {
     if (!req.user) {
-      return { message: "Login failed" };
+      return { success: false, message: "Login failed" };
     }
 
-    return req.user;
+    const authResponse = req.user as
+      | { accessToken?: string; refreshToken?: string; user?: unknown }
+      | undefined;
+
+    return {
+      success: true,
+      accessToken: authResponse?.accessToken,
+      refreshToken: authResponse?.refreshToken,
+      user: authResponse?.user,
+    };
   }
 
   @Get("google")

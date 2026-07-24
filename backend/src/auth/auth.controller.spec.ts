@@ -1,32 +1,65 @@
-/** @jest-environment @quramy/jest-prisma/environment */
-declare const jestPrisma: { client: PrismaService };
+jest.mock("./auth.service", () => ({
+  AuthService: class {},
+}));
 
-import { JwtService } from "@nestjs/jwt";
+jest.mock("../prisma/prisma.service", () => ({
+  PrismaService: class {},
+}));
+
+jest.mock("@prisma/client", () => require("../test-utils/prisma-client.mock"));
+
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
-import { PrismaService } from "../prisma/prisma.service";
 
 describe("AuthController", () => {
   let controller: AuthController;
-  let prisma: PrismaService;
 
   beforeEach(() => {
-    prisma = jestPrisma.client as PrismaService;
-    const jwtService = {
-      sign: jest.fn(() => "test-token"),
-    } as unknown as JwtService;
-    controller = new AuthController(new AuthService(prisma, jwtService));
+    const registerLocal = jest.fn(
+      async (dto: { firstName: string; email: string; password: string }) => ({
+        accessToken: "test-token",
+        refreshToken: "refresh-token",
+        user: {
+          id: 1,
+          firstName: dto.firstName,
+          email: dto.email,
+        },
+      }),
+    );
+
+    const authService = {
+      registerLocal,
+    } as unknown as AuthService;
+
+    controller = new AuthController(authService);
   });
 
   it("registers a new local user", async () => {
     const result = await controller.register({
-      username: "bob",
+      firstName: "bob",
       email: "bob@example.com",
       password: "secret",
     });
 
-    expect(result.user.username).toBe("bob");
+    expect(result.user.firstName).toBe("bob");
     expect(result.user.email).toBe("bob@example.com");
     expect(result.accessToken).toBeDefined();
+  });
+
+  it("returns a success payload when login succeeds", async () => {
+    const result = await controller.login({
+      user: {
+        accessToken: "test-token",
+        refreshToken: "refresh-token",
+        user: { id: 1, email: "bob@example.com" },
+      },
+    } as never);
+
+    expect(result).toEqual({
+      success: true,
+      accessToken: "test-token",
+      refreshToken: "refresh-token",
+      user: { id: 1, email: "bob@example.com" },
+    });
   });
 });
