@@ -4,9 +4,9 @@ import {
   createRootRouteWithContext,
 } from '@tanstack/react-router'
 
-import appCss from '../styles.css?url'
-
 import type { QueryClient } from '@tanstack/react-query'
+
+import '../styles.css'
 
 interface MyRouterContext {
   queryClient: QueryClient
@@ -26,14 +26,18 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         title: 'LnQ Admin Dashboard',
       },
     ],
-    links: [
-      {
-        rel: 'stylesheet',
-        href: appCss,
-      },
-    ],
   }),
   shellComponent: RootDocument,
+  notFoundComponent: () => (
+    <div className="flex min-h-screen items-center justify-center p-8 text-center">
+      <div>
+        <h1 className="text-2xl font-semibold">Page not found</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The requested page could not be found.
+        </p>
+      </div>
+    </div>
+  ),
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -42,7 +46,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className='dark'>
+      <body className="dark">
         {children}
         {/* <TanStackDevtools
           config={{

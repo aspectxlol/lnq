@@ -13,17 +13,17 @@ describe("AuthService", () => {
       user: {
         findFirst: jest.fn(
           (args?: {
-            where?: { username?: string; email?: string; googleId?: string };
+            where?: { id?: number; email?: string; phone?: string };
           }) => {
             const where = args?.where ?? {};
             return users.find((user) => {
-              if (where.username && user.username !== where.username) {
+              if (where.id !== undefined && user.id !== where.id) {
                 return false;
               }
               if (where.email && user.email !== where.email) {
                 return false;
               }
-              if (where.googleId && user.googleId !== where.googleId) {
+              if (where.phone && user.phone !== where.phone) {
                 return false;
               }
               return true;
@@ -32,7 +32,11 @@ describe("AuthService", () => {
         ),
         create: jest.fn((args?: { data?: Record<string, unknown> }) => {
           const user = {
-            id: `user-${users.length + 1}`,
+            id: users.length + 1,
+            emailVerified: false,
+            role: "CUSTOMER",
+            createdAt: new Date(),
+            updatedAt: new Date(),
             ...args?.data,
           };
           users.push(user);
@@ -40,7 +44,7 @@ describe("AuthService", () => {
         }),
         update: jest.fn(
           (args?: {
-            where?: { id?: string };
+            where?: { id?: number };
             data?: Record<string, unknown>;
           }) => {
             const index = users.findIndex(
@@ -57,18 +61,20 @@ describe("AuthService", () => {
       session: {
         create: jest.fn((args?: { data?: Record<string, unknown> }) => {
           const session = {
-            id: `session-${sessions.length + 1}`,
+            id: sessions.length + 1,
             ...args?.data,
           };
           sessions.push(session);
           return session;
         }),
-        findFirst: jest.fn((args?: { where?: { refreshToken?: string } }) => {
-          const refreshToken = args?.where?.refreshToken;
-          return sessions.find(
-            (session) => session.refreshToken === refreshToken,
-          );
-        }),
+        findFirst: jest.fn(
+          (args?: { where?: { refreshTokenHash?: string } }) => {
+            const refreshTokenHash = args?.where?.refreshTokenHash;
+            return sessions.find(
+              (session) => session.refreshTokenHash === refreshTokenHash,
+            );
+          },
+        ),
       },
     } as unknown as PrismaService;
 
@@ -83,30 +89,29 @@ describe("AuthService", () => {
     service = new AuthService(prisma, jwtService);
   });
 
-  it("registers a local user and allows login by username or email", async () => {
+  it("registers a local user and allows login by email", async () => {
     const result = await service.registerLocal({
-      username: "alice",
+      firstName: "Alice",
       email: "alice@example.com",
       password: "secret",
     });
 
     expect(result.accessToken).toBeDefined();
-    expect(result.user.username).toBe("alice");
+    expect(result.user.firstName).toBe("Alice");
     expect(result.user.email).toBe("alice@example.com");
 
-    const byUsername = await service.validateLocalUser("alice", "secret");
     const byEmail = await service.validateLocalUser(
       "alice@example.com",
       "secret",
     );
 
-    expect(byUsername?.email).toBe("alice@example.com");
-    expect(byEmail?.username).toBe("alice");
+    expect(byEmail?.email).toBe("alice@example.com");
+    expect(byEmail?.firstName).toBe("Alice");
   });
 
   it("issues and rotates refresh tokens", async () => {
     const registered = await service.registerLocal({
-      username: "bob",
+      firstName: "Bob",
       email: "bob@example.com",
       password: "secret",
     });
@@ -145,7 +150,7 @@ describe("AuthService", () => {
     const result = await service.handleGoogleAuth(profile);
 
     expect(result.accessToken).toBeDefined();
-    expect(result.user.provider).toBe("google");
     expect(result.user.email).toBe("google@example.com");
+    expect(result.user.firstName).toBe("Google");
   });
 });

@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { type Request } from "express";
 import { AuthService } from "./auth.service";
-import { type RegisterAuthDto } from "./dto/register-auth.dto";
+import { LoginAuthDto } from "./dto/login-auth.dto";
+import { RegisterAuthDto } from "./dto/register-auth.dto";
 import { GoogleAuthGuard } from "./guards/google-auth.guard";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
@@ -10,11 +12,15 @@ type AuthenticatedRequest = Request & {
   user?: unknown;
 };
 
+@ApiTags("auth")
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post("register")
+  @ApiOperation({ summary: "Register a new local user" })
+  @ApiBody({ type: RegisterAuthDto })
+  @ApiResponse({ status: 201, description: "Registration successful" })
   async register(@Body() dto: RegisterAuthDto) {
     const authResponse = await this.authService.registerLocal(dto);
     return {
@@ -25,6 +31,9 @@ export class AuthController {
 
   @Post("login")
   @UseGuards(LocalAuthGuard)
+  @ApiOperation({ summary: "Log in with email/phone and password" })
+  @ApiBody({ type: LoginAuthDto })
+  @ApiResponse({ status: 201, description: "Login successful" })
   async login(@Req() req: AuthenticatedRequest) {
     if (!req.user) {
       return { message: "Login failed" };
@@ -35,12 +44,14 @@ export class AuthController {
 
   @Get("google")
   @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: "Start Google OAuth login" })
   googleAuth() {
     return { message: "Redirecting to Google" };
   }
 
   @Get("google/callback")
   @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: "Handle Google OAuth callback" })
   googleAuthCallback(@Req() req: AuthenticatedRequest) {
     return {
       message: "Google authentication successful",
@@ -49,12 +60,15 @@ export class AuthController {
   }
 
   @Post("refresh")
+  @ApiOperation({ summary: "Refresh an access token" })
+  @ApiResponse({ status: 201, description: "Token refreshed" })
   async refresh(@Body() body: { refreshToken: string }) {
     return this.authService.refreshAccessToken(body.refreshToken);
   }
 
   @Get("me")
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Get the authenticated user" })
   me(@Req() req: AuthenticatedRequest) {
     return req.user ?? null;
   }
