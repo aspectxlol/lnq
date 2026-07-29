@@ -97,6 +97,7 @@ export class AuthService {
       data: {
         refreshTokenHash: hashedNewRefreshToken,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Extend expiration to 30 days
+        lastUsedAt: new Date(), // Update the last used timestamp
       },
     });
     const payload: JwtPayload = {
