@@ -1,219 +1,165 @@
+/*
+https://docs.nestjs.com/providers#services
+*/
+
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import { createHash } from "crypto";
-import { Profile } from "passport-google-oauth20";
+import { RegisterDto } from "./dto/register.dto";
 import { PrismaService } from "../prisma/prisma.service";
-import { RegisterAuthDto } from "./dto/register-auth.dto";
-
-type UserRecord = {
-  id: number;
-  email: string;
-  passwordHash?: string | null;
-  firstName: string;
-  lastName?: string | null;
-  phone?: string | null;
-  role: string;
-  emailVerified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-};
+import * as bcrypt from "bcrypt";
+import { LoginDto } from "./dto/login.dto";
+import * as jwt from "jsonwebtoken";
+import { AuthUser } from "./interfaces/auth-user.interface";
+import { JwtService } from "@nestjs/jwt/dist/jwt.service";
+import { FastifyRequest } from "fastify";
+import { JwtPayload, SafeUser } from "./interfaces/jwt.interface";
+import { User } from "@prisma/client";
+import { RefreshDto } from "./dto/refresh.dto";
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prismaService: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
 
-  async registerLocal(dto: RegisterAuthDto) {
-    const existing = await this.prisma.user.findFirst({
+  async register(registerDto: RegisterDto) {
+    const user = await this.prismaService.user.findFirst({
       where: {
-        email: dto.email,
+        email: registerDto.email,
       },
     });
 
-    if (existing) {
+    if (user) {
       throw new ConflictException("Email already exists");
     }
 
-    const user = await this.prisma.user.create({
+    const hash = await bcrypt.hash(registerDto.password, 10);
+
+    // Create the user with the hashed password
+    await this.prismaService.user.create({
       data: {
-        email: dto.email,
-        passwordHash: this.hashPassword(dto.password),
-        firstName: dto.firstName,
-        lastName: dto.lastName ?? null,
-        phone: dto.phone ?? null,
-        role: "CUSTOMER",
+        name: registerDto.name,
+        email: registerDto.email,
+        passwordHash: hash,
       },
     });
-
-    return this.buildAuthResponse(user);
   }
 
-  async validateLocalUser(email: string, password: string) {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        email,
-      },
-    });
+  async login(user: AuthUser, req: FastifyRequest) {
+    const refreshToken = crypto.randomUUID(); // Generate a unique refresh token
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10); // Hash the refresh token
 
-    if (!user || !user.passwordHash) {
-      return null;
-    }
-
-    if (user.passwordHash !== this.hashPassword(password)) {
-      return null;
-    }
-
-    return this.sanitizeUser(user);
-  }
-
-  async loginLocal(email: string, password: string) {
-    const user = await this.validateLocalUser(email, password);
-    if (!user) {
-      return null;
-    }
-
-    return this.buildAuthResponse(user as never);
-  }
-
-  async getAuthenticatedUser(id: string | number) {
-    const numericId = Number(id);
-    if (!Number.isFinite(numericId)) {
-      return null;
-    }
-
-    const user = await this.prisma.user.findFirst({ where: { id: numericId } });
-    if (!user) {
-      return null;
-    }
-
-    return this.sanitizeUser(user);
-  }
-
-  async handleGoogleAuth(profile: Profile) {
-    const email = profile.emails?.[0]?.value;
-    const firstName =
-      profile.name?.givenName || profile.displayName?.split(" ")[0] || "Google";
-    const lastName = profile.name?.familyName ?? null;
-
-    if (!email) {
-      throw new ConflictException("Google profile did not contain an email");
-    }
-
-    let user = await this.prisma.user.findFirst({
-      where: { email },
-    });
-
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          email,
-          firstName,
-          lastName,
-          emailVerified: true,
-        },
-      });
-    } else {
-      user = await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          firstName: user.firstName || firstName,
-          lastName: user.lastName ?? lastName,
-          emailVerified: true,
-        },
-      });
-    }
-
-    return this.buildAuthResponse(user);
-  }
-
-  async refreshAccessToken(refreshToken: string) {
-    const refreshTokenHash = this.hashPassword(refreshToken);
-    const session = await this.prisma.session.findFirst({
-      where: { refreshTokenHash },
-    });
-
-    if (!session || new Date(session.expiresAt as Date) < new Date()) {
-      throw new UnauthorizedException("Invalid or expired refresh token");
-    }
-
-    const user = await this.prisma.user.findFirst({
-      where: { id: session.userId },
-    });
-    if (!user) {
-      throw new UnauthorizedException("User not found");
-    }
-
-    const rotatedRefreshToken = this.generateRefreshToken();
-    await this.prisma.session.create({
+    const session = await this.prismaService.session.create({
       data: {
         userId: user.id,
-        refreshTokenHash: this.hashPassword(rotatedRefreshToken),
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+        refreshTokenHash: hashedRefreshToken,
+        userAgent: req.headers["user-agent"] || "unknown",
+        ipAddress: req.ip || "unknown",
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Set expiration to 30 days
       },
     });
-
-    return this.buildAuthResponse(user, rotatedRefreshToken);
-  }
-
-  async logout(refreshToken?: string) {
-    if (!refreshToken) {
-      return { success: true, message: "Logged out" };
-    }
-
-    const refreshTokenHash = this.hashPassword(refreshToken);
-    await this.prisma.session.deleteMany({
-      where: { refreshTokenHash },
-    });
-
-    return { success: true, message: "Logged out" };
-  }
-
-  private async buildAuthResponse(user: UserRecord, newRefreshToken?: string) {
-    const sanitizedUser = this.sanitizeUser(user);
-    const accessToken = this.jwtService.sign({
-      sub: sanitizedUser.id,
-      email: sanitizedUser.email,
-    });
-
-    const refreshToken = newRefreshToken ?? this.generateRefreshToken();
-    await this.persistRefreshToken(sanitizedUser.id, refreshToken);
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      sessionId: session.id,
+    };
 
     return {
-      accessToken,
-      refreshToken,
-      user: sanitizedUser,
+      access_token: this.jwtService.sign(payload),
+      refresh_token: refreshToken, // Return the plain refresh token to the client
+      userid: user.id,
     };
   }
 
-  private async persistRefreshToken(userId: number, refreshToken: string) {
-    await this.prisma.session.create({
+  async refresh(data: RefreshDto) {
+    const session = await this.getValidSession(parseInt(data.sessionId));
+    const isValidRefreshToken = await bcrypt.compare(
+      data.refreshToken,
+      session.refreshTokenHash,
+    );
+
+    if (!isValidRefreshToken) {
+      throw new UnauthorizedException("Invalid refresh token");
+    }
+
+    const newRefreshToken = crypto.randomUUID(); // Generate a new unique refresh token
+    const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10); // Hash the new refresh token
+    await this.prismaService.session.update({
+      where: {
+        id: session.id,
+      },
       data: {
-        userId,
-        refreshTokenHash: this.hashPassword(refreshToken),
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+        refreshTokenHash: hashedNewRefreshToken,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Extend expiration to 30 days
       },
     });
+    const payload: JwtPayload = {
+      sub: session.user.id,
+      email: session.user.email,
+      role: session.user.role,
+      sessionId: session.id,
+    };
+
+    return {
+      access_token: this.jwtService.sign(payload),
+      refresh_token: newRefreshToken, // Return the new plain refresh token to the client
+    };
   }
 
-  private generateRefreshToken() {
-    return `refresh-${createHash("sha256")
-      .update(`${Date.now()}-${Math.random()}`)
-      .digest("hex")}`;
+  async validateUser(
+    email: string,
+    password: string,
+  ): Promise<AuthUser | null> {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    if (!user) throw new UnauthorizedException("Invalid email or password");
+    if (!(await bcrypt.compare(password, user.passwordHash!)))
+      throw new UnauthorizedException("Invalid email or password");
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
   }
 
-  private hashPassword(password: string) {
-    return createHash("sha256").update(password).digest("hex");
+  async validateSession(payload: JwtPayload): Promise<SafeUser> {
+    const session = await this.getValidSession(payload.sessionId);
+
+    if (session.user.id !== payload.sub)
+      throw new UnauthorizedException("Invalid session");
+    const { passwordHash, ...userWithoutPassword } = session.user; // Exclude passwordHash from the returned user object
+    return userWithoutPassword;
   }
 
-  private sanitizeUser(user: UserRecord) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...rest } = user;
-    return rest;
+  private async getValidSession(sessionId: number) {
+    const session = await this.prismaService.session.findUnique({
+      where: {
+        id: sessionId,
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!session) throw new UnauthorizedException("Invalid session");
+    if (session.revokedAt) throw new UnauthorizedException("Session revoked");
+    if (session.expiresAt < new Date())
+      throw new UnauthorizedException("Session expired");
+
+    if (!session.user.isActive)
+      throw new UnauthorizedException("User is inactive");
+
+    return session;
   }
 }

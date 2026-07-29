@@ -51,3 +51,6 @@ function Home() {
     </div>
   )
 }
+
+// Proactive refresh of access token every 5 minutes
+// on 401 check if refresh is available and refresh access token

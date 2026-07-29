@@ -17,6 +17,13 @@ enum Role {
   OWNER
 }
 
+enum OAuthProvider {
+  GOOGLE
+  FACEBOOK
+  APPLE
+  GITHUB
+}
+
 enum ItemType {
   PRODUCT
   CUSTOM
@@ -36,47 +43,199 @@ enum CouponType {
   FIXED
 }
 
+enum OrderSource {
+  WEBSITE
+  WHATSAPP
+  INSTAGRAM
+  WALK_IN
+  PHONE
+  MANUAL
+}
+
+enum PaymentProvider {
+  MIDTRANS
+  STRIPE
+  PAYPAL
+  OTHER
+}
+
+enum PaymentMethod {
+  CASH
+  QRIS
+  BANK_TRANSFER
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum SessionRevokeReason {
+  LOGOUT
+  PASSWORD_CHANGED
+  ADMIN_REVOKED
+  SECURITY
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+}
+
+enum AuditEntity {
+  USER
+  PRODUCT
+  ORDER
+  CATEGORY
+  COUPON
+  PAYMENT
+  ADDRESS
+  INVITE
+  SESSION
+  ACCOUNT
+}
+
 //
 // Authentication
 //
 
-//TODO: IMPLEMENT ACCOUNT LINKING FOR MULTIPLE OAUTH PROVIDERS PER USER(GOOGLE, FACEBOOK, ETC.)
-
 model User {
-  id              Int       @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
 
-  email           String    @unique
-  passwordHash    String?
+  email         String    @unique
+  passwordHash  String?
 
-  firstName       String
-  lastName        String?
+  name          String
+  phone         String?
+  role          Role      @default(CUSTOMER)
 
-  phone           String?
+  emailVerified Boolean   @default(false)
 
-  role            Role      @default(CUSTOMER)
+  isActive      Boolean   @default(true)
 
-  emailVerified   Boolean   @default(false)
+  inviteId      Int?
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  sessions        Session[]
-  addresses       Address[]
-  orders          Order[]
+  invite                Invite?                   @relation(fields: [inviteId], references: [id])
+  sessions              Session[]
+  accounts              Account[]
+  addresses             Address[]
+  orders                Order[]                   @relation("CustomerOrders")
+  createdOrders         Order[]                   @relation("CreatedOrders")
+  couponUsages          CouponUsage[]
+  verificationTokens    VerificationToken[]
+  passwordResetTokens   PasswordResetToken[]
+  auditLogs             AuditLog[]
+  createdInvites        Invite[]                  @relation("CreatedInvites")
+}
+
+model Account {
+  id Int @id @default(autoincrement())
+
+  userId Int
+
+  provider OAuthProvider
+
+  providerAccountId String
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
-  id                  Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  userId              Int
+  userId Int
 
-  refreshTokenHash    String
+  refreshTokenHash String
 
-  expiresAt           DateTime
+  expiresAt DateTime
 
-  createdAt           DateTime @default(now())
+  revokedAt DateTime?
+  revokeReason SessionRevokeReason?
+
+  ipAddress String?
+  userAgent String?
+
+  lastUsedAt DateTime?
+
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model VerificationToken {
+  id Int @id @default(autoincrement())
+
+  userId Int
+
+  tokenHash String
+
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id Int @id @default(autoincrement())
+
+  userId Int
+
+  tokenHash String
+
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Invite {
+  id Int @id @default(autoincrement())
+
+  code String @unique
+
+  role Role @default(CUSTOMER)
+
+  email String?
+
+  expiresAt DateTime?
+
+  maxUses Int @default(1)
+
+  usedCount Int @default(0)
+
+  createdById Int?
+
+  createdAt DateTime @default(now())
+
+  createdBy User? @relation("CreatedInvites", fields: [createdById], references: [id])
+
+  registrations User[]
+
+  @@index([createdById])
 }
 
 //
@@ -84,66 +243,75 @@ model Session {
 //
 
 model Category {
-  id          Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  name        String
+  name String @unique
 
-  slug        String   @unique
+  slug String @unique
 
   description String?
 
-  active      Boolean  @default(true)
+  active Boolean @default(true)
 
-  sortOrder   Int      @default(0)
+  sortOrder Int @default(0)
 
-  createdAt   DateTime @default(now())
+  deletedAt DateTime?
 
-  products    Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  categoryId  Int?
+  categoryId Int?
 
-  sku         String   @unique
+  slug String @unique
 
-  slug        String   @unique
-
-  name        String
+  name String
 
   description String?
 
-  price       Int
+  price Int
 
-  stock       Int      @default(0)
+  active Boolean @default(true)
 
-  active      Boolean  @default(true)
+  deletedAt DateTime?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   category Category? @relation(fields: [categoryId], references: [id])
 
   images ProductImage[]
 
   orderItems OrderItem[]
+
+  @@index([categoryId])
+  @@index([active])
+  @@index([deletedAt])
+  @@index([active, deletedAt])
 }
 
 model ProductImage {
-  id          Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  productId   Int
+  productId Int
 
-  objectKey   String
+  objectKey String @unique
 
-  altText     String?
+  altText String?
 
-  sortOrder   Int      @default(0)
+  sortOrder Int @default(0)
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([productId, sortOrder])
 }
 
 //
@@ -151,29 +319,53 @@ model ProductImage {
 //
 
 model Coupon {
-  id              Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  code            String   @unique
+  code String @unique
 
-  type            CouponType
+  type CouponType
 
-  value           Int
+  value Int
+
+  description String?
 
   minimumPurchase Int?
 
-  usageLimit      Int?
+  usageLimit Int?
+  maxDiscount Int?
 
-  usedCount       Int      @default(0)
+  active Boolean @default(true)
 
-  active          Boolean  @default(true)
+  startsAt DateTime?
 
-  startsAt        DateTime?
+  expiresAt DateTime?
+  deletedAt DateTime?
 
-  expiresAt       DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  createdAt       DateTime @default(now())
+  usages CouponUsage[]
+}
 
-  orders Order[]
+model CouponUsage {
+  id Int @id @default(autoincrement())
+
+  couponId Int
+  orderId Int
+  userId Int?
+
+  createdAt DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([couponId])
+  @@index([orderId])
+  @@index([userId])
+
+  @@unique([couponId, orderId])
+
 }
 
 //
@@ -181,90 +373,172 @@ model Coupon {
 //
 
 model Order {
-  id            Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  userId        Int?
+  userId Int?
 
-  couponId      Int?
+  createdById Int?
 
-  orderNumber   String   @unique
+  orderNumber String @unique
 
-  customerName  String
+  source OrderSource @default(WEBSITE)
 
-  status        OrderStatus @default(PENDING)
+  customerSnapshotName String
+  customerSnapshotEmail String?
+  customerSnapshotPhone String?
 
-  subtotal      Int
+  status OrderStatus @default(PENDING)
 
-  discount      Int      @default(0)
+  subtotal Int
 
-  tax           Int      @default(0)
+  discount Int @default(0)
 
-  total         Int
+  tax Int @default(0)
 
-  pickupDate    DateTime?
+  total Int
 
-  notes         String?
+  pickupDate DateTime?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  completedAt DateTime?
 
-  user User? @relation(fields: [userId], references: [id])
+  notes String?
 
-  coupon Coupon? @relation(fields: [couponId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer User? @relation("CustomerOrders", fields: [userId], references: [id])
+
+  createdBy User? @relation("CreatedOrders", fields: [createdById], references: [id])
+
+  payment Payment?
 
   items OrderItem[]
+  couponUsages CouponUsage[]
+
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([pickupDate])
+  @@index([source])
+  @@index([userId])
+  @@index([createdById])
 }
 
 model OrderItem {
-  id              Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  orderId         Int
+  orderId Int
 
-  itemType        ItemType @default(PRODUCT)
+  itemType ItemType @default(PRODUCT)
 
-  productId       Int?
+  productId Int?
+  productName String?
+  productSku String?
 
-  quantity        Int?
+  quantity Int @default(1)
 
-  notes           String?
+  notes String?
 
-  priceAtSale     Int?
+  priceAtSale Int
 
-  customName      String?
+  customName String?
 
-  customPrice     Int?
+  customPrice Int?
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   product Product? @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
 }
 
 //
-// Customer Addresses
+// Payments
+//
+
+model Payment {
+  id Int @id @default(autoincrement())
+
+  orderId Int @unique
+
+  provider PaymentProvider?
+
+  transactionId String?
+
+  method PaymentMethod?
+
+  status PaymentStatus @default(PENDING)
+
+  amount Int
+
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+//
+// Customer
 //
 
 model Address {
-  id              Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  userId          Int
+  userId Int
 
-  label           String?
+  label String?
 
-  recipientName   String
+  recipientName String
 
-  phone           String
+  phone String
 
-  street          String
+  street String
 
-  city            String
+  district String?
 
-  province        String
+  city String
 
-  postalCode      String
+  province String
 
-  isDefault       Boolean  @default(false)
+  country String @default("Indonesia")
 
-  createdAt       DateTime @default(now())
+  postalCode String
+
+  isDefault Boolean @default(false)
+
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+//
+// Administration
+//
+
+model AuditLog {
+  id Int @id @default(autoincrement())
+
+  userId Int?
+
+  action AuditAction
+
+  entity AuditEntity
+
+  entityId String
+
+  changes Json?
+
+  ipAddress String?
+
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
