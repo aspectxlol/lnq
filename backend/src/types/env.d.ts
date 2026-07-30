@@ -16,6 +16,7 @@ declare namespace NodeJS {
     CORS_ORIGIN: string;
     COOKIE_SECRET: string;
 
-    JWT_SECRET: string;
+    JWT_ACCESS_SECRET: string;
+    JWT_REFRESH_SECRET: string;
   }
 }

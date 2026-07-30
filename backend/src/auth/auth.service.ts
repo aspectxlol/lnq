@@ -14,14 +14,22 @@ import * as bcrypt from "bcrypt";
 import { AuthUser } from "./interfaces/auth-user.interface";
 import { JwtService } from "@nestjs/jwt/dist/jwt.service";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { JwtPayload, SafeUser } from "./interfaces/jwt.interface";
+import type {
+  AccessJwtPayload,
+  RefreshJwtPayload,
+  SafeUser,
+} from "./interfaces/jwt.interface";
+import * as RefreshJwt from "jsonwebtoken";
 
 @Injectable()
 export class AuthService {
+  RefreshJwtService: typeof RefreshJwt;
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly jwtService: JwtService,
-  ) {}
+    private readonly AccessJwtService: JwtService,
+  ) {
+    this.RefreshJwtService = RefreshJwt;
+  }
 
   async register(registerDto: RegisterDto) {
     const user = await this.prismaService.user.findFirst({
@@ -59,8 +67,9 @@ export class AuthService {
         },
       });
 
-      refreshToken = this.jwtService.sign(
-        { sessionId: session.id },
+      refreshToken = this.RefreshJwtService.sign(
+        { sid: session.id },
+        process.env.JWT_REFRESH_SECRET,
         { expiresIn: "30d" },
       );
       const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
@@ -77,7 +86,7 @@ export class AuthService {
       });
     });
 
-    const payload: JwtPayload = {
+    const payload: AccessJwtPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
@@ -93,7 +102,7 @@ export class AuthService {
     });
 
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: this.AccessJwtService.sign(payload),
       userid: user.id,
     };
   }
@@ -102,10 +111,19 @@ export class AuthService {
     const refreshToken = req.cookies["refresh_token"];
     if (!refreshToken)
       throw new UnauthorizedException("Refresh token not found");
-    // decode the refresh token to get the sessionId
-    const { sessionId } = this.jwtService.verify(refreshToken);
+    let verified: RefreshJwtPayload;
+    try {
+      verified = this.RefreshJwtService.verify(
+        refreshToken,
+        process.env.JWT_REFRESH_SECRET,
+      ) as RefreshJwtPayload;
+    } catch (err) {
+      console.error("Refresh token verification failed:", err);
+      throw new UnauthorizedException("Invalid refresh token");
+    }
+    const { sid: sessionId } = verified;
 
-    const session = await this.getValidSession(parseInt(sessionId));
+    const session = await this.getValidSession(sessionId);
     const isValidRefreshToken = await bcrypt.compare(
       refreshToken,
       session.refreshTokenHash,
@@ -115,8 +133,9 @@ export class AuthService {
       throw new UnauthorizedException("Invalid refresh token");
     }
 
-    const newRefreshToken = this.jwtService.sign(
-      { sessionId: sessionId },
+    const newRefreshToken = this.RefreshJwtService.sign(
+      { sid: sessionId },
+      process.env.JWT_REFRESH_SECRET,
       { expiresIn: "30d" },
     ); // Generate a new unique refresh token
     const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10); // Hash the new refresh token
@@ -130,7 +149,7 @@ export class AuthService {
         lastUsedAt: new Date(), // Update the last used timestamp
       },
     });
-    const payload: JwtPayload = {
+    const payload: AccessJwtPayload = {
       sub: session.user.id,
       email: session.user.email,
       role: session.user.role,
@@ -146,7 +165,7 @@ export class AuthService {
     });
 
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: this.AccessJwtService.sign(payload),
     };
   }
 
@@ -171,7 +190,7 @@ export class AuthService {
     };
   }
 
-  async validateSession(payload: JwtPayload): Promise<SafeUser> {
+  async validateSession(payload: AccessJwtPayload): Promise<SafeUser> {
     const session = await this.getValidSession(payload.sessionId);
 
     if (session.user.id !== payload.sub)
