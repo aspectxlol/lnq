@@ -11,14 +11,10 @@ import {
 import { RegisterDto } from "./dto/register.dto";
 import { PrismaService } from "../prisma/prisma.service";
 import * as bcrypt from "bcrypt";
-import { LoginDto } from "./dto/login.dto";
-import * as jwt from "jsonwebtoken";
 import { AuthUser } from "./interfaces/auth-user.interface";
 import { JwtService } from "@nestjs/jwt/dist/jwt.service";
-import { FastifyRequest } from "fastify";
+import { FastifyReply, FastifyRequest } from "fastify";
 import { JwtPayload, SafeUser } from "./interfaces/jwt.interface";
-import { User } from "@prisma/client";
-import { RefreshDto } from "./dto/refresh.dto";
 
 @Injectable()
 export class AuthService {
@@ -50,19 +46,32 @@ export class AuthService {
     });
   }
 
-  async login(user: AuthUser, req: FastifyRequest) {
-    const refreshToken = crypto.randomUUID(); // Generate a unique refresh token
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10); // Hash the refresh token
-
+  async login(user: AuthUser, req: FastifyRequest, reply: FastifyReply) {
     const session = await this.prismaService.session.create({
       data: {
         userId: user.id,
-        refreshTokenHash: hashedRefreshToken,
+        refreshTokenHash: "",
         userAgent: req.headers["user-agent"] || "unknown",
         ipAddress: req.ip || "unknown",
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Set expiration to 30 days
       },
     });
+
+    const refreshToken = this.jwtService.sign(
+      { sessionId: session.id },
+      { expiresIn: "30d" },
+    );
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+
+    await this.prismaService.session.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        refreshTokenHash: hashedRefreshToken,
+      },
+    });
+
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -70,17 +79,30 @@ export class AuthService {
       sessionId: session.id,
     };
 
+    reply.setCookie("refresh_token", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/auth/refresh",
+      maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+    });
+
     return {
       access_token: this.jwtService.sign(payload),
-      refresh_token: refreshToken, // Return the plain refresh token to the client
       userid: user.id,
     };
   }
 
-  async refresh(data: RefreshDto) {
-    const session = await this.getValidSession(parseInt(data.sessionId));
+  async refresh(req: FastifyRequest, reply: FastifyReply) {
+    const refreshToken = req.cookies["refresh_token"];
+    if (!refreshToken)
+      throw new UnauthorizedException("Refresh token not found");
+    // decode the refresh token to get the sessionId
+    const { sessionId } = this.jwtService.verify(refreshToken);
+
+    const session = await this.getValidSession(parseInt(sessionId));
     const isValidRefreshToken = await bcrypt.compare(
-      data.refreshToken,
+      refreshToken,
       session.refreshTokenHash,
     );
 
@@ -88,7 +110,10 @@ export class AuthService {
       throw new UnauthorizedException("Invalid refresh token");
     }
 
-    const newRefreshToken = crypto.randomUUID(); // Generate a new unique refresh token
+    const newRefreshToken = this.jwtService.sign(
+      { sessionId: sessionId },
+      { expiresIn: "30d" },
+    ); // Generate a new unique refresh token
     const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10); // Hash the new refresh token
     await this.prismaService.session.update({
       where: {
@@ -107,9 +132,16 @@ export class AuthService {
       sessionId: session.id,
     };
 
+    reply.setCookie("refresh_token", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/auth/refresh",
+      maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+    });
+
     return {
       access_token: this.jwtService.sign(payload),
-      refresh_token: newRefreshToken, // Return the new plain refresh token to the client
     };
   }
 

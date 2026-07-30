@@ -14,6 +14,7 @@ declare namespace NodeJS {
     REDIS_HOST: string;
 
     CORS_ORIGIN: string;
+    COOKIE_SECRET: string;
 
     JWT_SECRET: string;
   }
