@@ -47,29 +47,34 @@ export class AuthService {
   }
 
   async login(user: AuthUser, req: FastifyRequest, reply: FastifyReply) {
-    const session = await this.prismaService.session.create({
-      data: {
-        userId: user.id,
-        refreshTokenHash: "",
-        userAgent: req.headers["user-agent"] || "unknown",
-        ipAddress: req.ip || "unknown",
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Set expiration to 30 days
-      },
-    });
+    let session, refreshToken;
+    await this.prismaService.$transaction(async (prisma) => {
+      session = await prisma.session.create({
+        data: {
+          userId: user.id,
+          ipAddress: req.ip,
+          userAgent: req.headers["user-agent"] || "unknown",
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Set expiration to 30 days
+          refreshTokenHash: "", // Placeholder, will be updated after hashing the refresh token
+        },
+      });
 
-    const refreshToken = this.jwtService.sign(
-      { sessionId: session.id },
-      { expiresIn: "30d" },
-    );
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+      refreshToken = this.jwtService.sign(
+        { sessionId: session.id },
+        { expiresIn: "30d" },
+      );
+      const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
-    await this.prismaService.session.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        refreshTokenHash: hashedRefreshToken,
-      },
+      await prisma.session.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          refreshTokenHash: hashedRefreshToken,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Set expiration to 30 days
+          lastUsedAt: new Date(), // Set the last used timestamp
+        },
+      });
     });
 
     const payload: JwtPayload = {
