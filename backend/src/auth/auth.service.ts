@@ -3,16 +3,16 @@ https://docs.nestjs.com/providers#services
 */
 
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from "@nestjs/common";
 import { RegisterDto } from "./dto/register.dto";
 import { PrismaService } from "../prisma/prisma.service";
 import * as bcrypt from "bcrypt";
 import { AuthUser } from "./interfaces/auth-user.interface";
-import { JwtService } from "@nestjs/jwt/dist/jwt.service";
+import { JwtService } from "@nestjs/jwt";
 import { FastifyReply, FastifyRequest } from "fastify";
 import type {
   AccessJwtPayload,
@@ -20,16 +20,16 @@ import type {
   SafeUser,
 } from "./interfaces/jwt.interface";
 import * as RefreshJwt from "jsonwebtoken";
+import { DAYS, DAYSINSECONDS } from "../utils";
 
 @Injectable()
 export class AuthService {
-  RefreshJwtService: typeof RefreshJwt;
+  private readonly RefreshJwtService = RefreshJwt;
+  private readonly logger: Logger = new Logger(AuthService.name);
   constructor(
     private readonly prismaService: PrismaService,
     private readonly AccessJwtService: JwtService,
-  ) {
-    this.RefreshJwtService = RefreshJwt;
-  }
+  ) {}
 
   async register(registerDto: RegisterDto) {
     const user = await this.prismaService.user.findFirst({
@@ -62,7 +62,7 @@ export class AuthService {
           userId: user.id,
           ipAddress: req.ip,
           userAgent: req.headers["user-agent"] || "unknown",
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Set expiration to 30 days
+          expiresAt: new Date(Date.now() + 30 * DAYS), // Set expiration to 30 days
           refreshTokenHash: "", // Placeholder, will be updated after hashing the refresh token
         },
       });
@@ -80,7 +80,6 @@ export class AuthService {
         },
         data: {
           refreshTokenHash: hashedRefreshToken,
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Set expiration to 30 days
           lastUsedAt: new Date(), // Set the last used timestamp
         },
       });
@@ -98,7 +97,7 @@ export class AuthService {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/auth/refresh",
-      maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+      maxAge: 30 * DAYSINSECONDS, // 30 days in seconds
     });
 
     return {
@@ -111,18 +110,7 @@ export class AuthService {
     const refreshToken = req.cookies["refresh_token"];
     if (!refreshToken)
       throw new UnauthorizedException("Refresh token not found");
-    let verified: RefreshJwtPayload;
-    try {
-      verified = this.RefreshJwtService.verify(
-        refreshToken,
-        process.env.JWT_REFRESH_SECRET,
-      ) as RefreshJwtPayload;
-    } catch (err) {
-      console.error("Refresh token verification failed:", err);
-      throw new UnauthorizedException("Invalid refresh token");
-    }
-    const { sid: sessionId } = verified;
-
+    const { sid: sessionId } = await this.verifyRefreshToken(refreshToken);
     const session = await this.getValidSession(sessionId);
     const isValidRefreshToken = await bcrypt.compare(
       refreshToken,
@@ -145,7 +133,7 @@ export class AuthService {
       },
       data: {
         refreshTokenHash: hashedNewRefreshToken,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Extend expiration to 30 days
+        expiresAt: new Date(Date.now() + 30 * DAYS), // Extend expiration to 30 days
         lastUsedAt: new Date(), // Update the last used timestamp
       },
     });
@@ -166,6 +154,34 @@ export class AuthService {
 
     return {
       access_token: this.AccessJwtService.sign(payload),
+    };
+  }
+
+  async logout(req: FastifyRequest, res: FastifyReply) {
+    const refreshToken = req.cookies["refresh_token"];
+    if (!refreshToken)
+      throw new UnauthorizedException("Refresh token not found");
+    const { sid: sessionId } = await this.verifyRefreshToken(refreshToken);
+    await this.prismaService.session.update({
+      where: {
+        id: sessionId,
+      },
+      data: {
+        revokedAt: new Date(),
+        revokeReason: "LOGOUT",
+      },
+    });
+
+    res.clearCookie("refresh_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/auth/refresh",
+    });
+
+    return {
+      message: "Logged out successfully",
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -197,6 +213,21 @@ export class AuthService {
       throw new UnauthorizedException("Invalid session");
     const { passwordHash, ...userWithoutPassword } = session.user; // Exclude passwordHash from the returned user object
     return userWithoutPassword;
+  }
+
+  async verifyRefreshToken(refreshToken): Promise<RefreshJwtPayload> {
+    let verified: RefreshJwtPayload;
+    try {
+      verified = this.RefreshJwtService.verify(
+        refreshToken,
+        process.env.JWT_REFRESH_SECRET,
+      ) as RefreshJwtPayload;
+    } catch (err) {
+      // console.error("Refresh token verification failed:", err);
+      this.logger.error("Refresh token verification failed:", err);
+      throw new UnauthorizedException("Invalid refresh token");
+    }
+    return verified;
   }
 
   private async getValidSession(sessionId: number) {

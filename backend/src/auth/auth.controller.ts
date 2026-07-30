@@ -49,6 +49,14 @@ export class AuthController {
     return req.user;
   }
 
+  @Get("/logout")
+  logout(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    return this.authservice.logout(req, res);
+  }
+
   @Get("/test")
   test(@Req() req: FastifyRequest) {
     return {

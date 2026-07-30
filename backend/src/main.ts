@@ -7,11 +7,17 @@ import {
 import { AppModule } from "./app.module";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import cookie from "@fastify/cookie";
+import { ConsoleLogger } from "@nestjs/common";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
+    {
+      logger: new ConsoleLogger({
+        prefix: "Backend",
+      }),
+    },
   );
 
   app.enableCors({
