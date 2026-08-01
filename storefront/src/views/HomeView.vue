@@ -1,27 +1,37 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted } from 'vue';
 onMounted(() => {
-  document.title = 'LnQ Cake & Cookies | Home'
-})
+  document.title = 'LnQ Cake & Cookies | Home';
+});
 </script>
 
 <template>
   <div>
     <!-- Hero -->
-    <section class="pt-[100px]">
+    <section class="pt-25">
       <div class="container grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
         <div>
           <small
             class="inline-block px-3 py-1 mb-6 text-xs"
-            :style="{ background: 'var(--color-secondary)', color: 'white', borderRadius: '999px' }"
+            :style="{
+              background: 'var(--color-secondary)',
+              color: 'white',
+              borderRadius: '999px',
+            }"
             >Handcrafted Since 2024</small
           >
 
-          <h1 style="color: var(--color-heading)">Cakes Crafted for Beautiful Celebrations.</h1>
+          <h1 style="color: var(--color-heading)">
+            Cakes Crafted for Beautiful Celebrations.
+          </h1>
 
-          <p class="mt-6 text-lg" style="color: var(--color-text)">
-            Small-batch, artisan cakes and delicate cookies crafted with the finest ingredients.
-            Each order is hand-finished to create elegant desserts for your most memorable moments.
+          <p
+            class="mt-6 text-lg"
+            style="color: var(--color-text)"
+          >
+            Small-batch, artisan cakes and delicate cookies crafted with the finest
+            ingredients. Each order is hand-finished to create elegant desserts for your
+            most memorable moments.
           </p>
 
           <div class="mt-8 flex items-center gap-4">
@@ -81,7 +91,9 @@ onMounted(() => {
               "
             ></div>
             <h4 class="mt-4">Custom Cakes</h4>
-            <p class="mt-2 text-sm text-muted">Bespoke designs tailored to your event and taste.</p>
+            <p class="mt-2 text-sm text-muted">
+              Bespoke designs tailored to your event and taste.
+            </p>
           </div>
 
           <div class="card p-4">
@@ -122,7 +134,12 @@ onMounted(() => {
       <div class="container">
         <div class="flex items-center justify-between mb-6">
           <h2>Best Sellers</h2>
-          <a href="#" class="text-sm" style="color: var(--color-primary)">View all</a>
+          <a
+            href="#"
+            class="text-sm"
+            style="color: var(--color-primary)"
+            >View all</a
+          >
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -200,7 +217,9 @@ onMounted(() => {
               "
             ></div>
             <h4 class="mt-4">Assorted Cookies</h4>
-            <p class="mt-2 text-sm text-muted">Delicate, buttery, and perfect for gifting.</p>
+            <p class="mt-2 text-sm text-muted">
+              Delicate, buttery, and perfect for gifting.
+            </p>
             <div class="mt-4 flex items-center justify-between">
               <div>
                 <div class="font-medium">$22</div>
@@ -220,8 +239,8 @@ onMounted(() => {
           <div>
             <h2>Request a Custom Cake</h2>
             <p class="mt-4 text-muted">
-              For weddings, birthdays, and unique celebrations, our bespoke service crafts a cake
-              that matches your vision and taste.
+              For weddings, birthdays, and unique celebrations, our bespoke service crafts
+              a cake that matches your vision and taste.
             </p>
             <div class="mt-6">
               <button class="btn btn-primary">Request a Custom Cake</button>
@@ -248,9 +267,9 @@ onMounted(() => {
         <div>
           <h2>Our Story</h2>
           <p class="mt-4 text-muted">
-            LnQ Cake & Cookies began as a small atelier devoted to precise technique and refined
-            flavor. We source seasonal ingredients and craft each piece by hand for a quietly
-            luxurious experience.
+            LnQ Cake & Cookies began as a small atelier devoted to precise technique and
+            refined flavor. We source seasonal ingredients and craft each piece by hand
+            for a quietly luxurious experience.
           </p>
         </div>
         <div>
@@ -274,24 +293,24 @@ onMounted(() => {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="card p-6">
             <p class="text-muted">
-              "An exquisite cake — delicate, balanced, and the most beautiful finish. Our guests
-              couldn't stop complimenting it."
+              "An exquisite cake — delicate, balanced, and the most beautiful finish. Our
+              guests couldn't stop complimenting it."
             </p>
             <div class="mt-4 font-medium">— Charlotte M.</div>
           </div>
 
           <div class="card p-6">
             <p class="text-muted">
-              "The custom design was executed perfectly. Attention to detail and flavor were
-              exceptional."
+              "The custom design was executed perfectly. Attention to detail and flavor
+              were exceptional."
             </p>
             <div class="mt-4 font-medium">— Hugo P.</div>
           </div>
 
           <div class="card p-6">
             <p class="text-muted">
-              "Packaging and presentation made this a beautiful gift. Taste matched the elegant
-              look."
+              "Packaging and presentation made this a beautiful gift. Taste matched the
+              elegant look."
             </p>
             <div class="mt-4 font-medium">— Amelia R.</div>
           </div>

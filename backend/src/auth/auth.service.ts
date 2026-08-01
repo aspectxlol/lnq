@@ -21,6 +21,7 @@ import type {
 } from "./interfaces/jwt.interface";
 import * as RefreshJwt from "jsonwebtoken";
 import { DAYS, DAYSINSECONDS } from "../utils";
+import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class AuthService {
@@ -31,27 +32,43 @@ export class AuthService {
     private readonly AccessJwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto) {
-    const user = await this.prismaService.user.findFirst({
-      where: {
-        email: registerDto.email,
-      },
-    });
-
-    if (user) {
-      throw new ConflictException("Email already exists");
+  async register(
+    registerDto: RegisterDto,
+    req: FastifyRequest,
+    res: FastifyReply,
+  ) {
+    try {
+      await this.prismaService.user.findFirst({
+        where: {
+          email: registerDto.email,
+        },
+      });
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      )
+        throw new ConflictException("Email already exists");
     }
 
     const hash = await bcrypt.hash(registerDto.password, 10);
 
     // Create the user with the hashed password
-    await this.prismaService.user.create({
+    const user = await this.prismaService.user.create({
       data: {
         name: registerDto.name,
         email: registerDto.email,
         passwordHash: hash,
       },
     });
+
+    const authUser: AuthUser = {
+      email: user.email,
+      id: user.id,
+      role: user.role,
+    };
+
+    return this.login(authUser, req, res);
   }
 
   async login(user: AuthUser, req: FastifyRequest, reply: FastifyReply) {

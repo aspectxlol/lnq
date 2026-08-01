@@ -22,8 +22,12 @@ export class AuthController {
   constructor(private readonly authservice: AuthService) {}
 
   @Post("/register")
-  register(@Body() registerDto: RegisterDto) {
-    return this.authservice.register(registerDto);
+  register(
+    @Body() registerDto: RegisterDto,
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    return this.authservice.register(registerDto, req, res);
   }
 
   @Post("/login")
