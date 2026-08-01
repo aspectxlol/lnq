@@ -1,0 +1,94 @@
+model Order {
+  id Int @id @default(autoincrement())
+
+  userId Int?
+
+  createdById Int?
+
+  orderNumber String @unique
+
+  source OrderSource @default(WEBSITE)
+
+  customerSnapshotName String
+  customerSnapshotEmail String?
+  customerSnapshotPhone String?
+
+  status OrderStatus @default(PENDING)
+
+  subtotal Int
+
+  discount Int @default(0)
+
+  tax Int @default(0)
+
+  total Int
+
+  pickupDate DateTime?
+
+  completedAt DateTime?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer User? @relation("CustomerOrders", fields: [userId], references: [id])
+
+  createdBy User? @relation("CreatedOrders", fields: [createdById], references: [id])
+
+  payment Payment?
+
+  items OrderItem[]
+  couponUsages CouponUsage[]
+
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([pickupDate])
+  @@index([source])
+  @@index([userId])
+  @@index([createdById])
+}
+
+model OrderItem {
+  id Int @id @default(autoincrement())
+
+  orderId Int
+
+  itemType ItemType @default(PRODUCT)
+
+  productId Int?
+  productName String?
+  productSku String?
+
+  quantity Int @default(1)
+
+  notes String?
+
+  priceAtSale Int
+
+  customName String?
+
+  customPrice Int?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  product Product? @relation(fields: [productId], references: [id])
+
+  orderItemOptions OrderItemOption[]
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderItemOption {
+  id Int @id @default(autoincrement())
+
+  orderItemId Int
+  optionName String
+  valueName String
+  additionalPrice Int @default(0)
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([orderItemId])
+}

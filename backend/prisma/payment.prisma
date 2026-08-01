@@ -1,0 +1,74 @@
+model Payment {
+  id Int @id @default(autoincrement())
+
+  orderId Int @unique
+
+  provider PaymentProvider?
+
+  transactionId String?
+
+  method PaymentMethod?
+
+  status PaymentStatus @default(PENDING)
+
+  amount Int
+
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+model Coupon {
+  id Int @id @default(autoincrement())
+
+  code String @unique
+
+  type CouponType
+
+  value Int
+
+  description String?
+
+  minimumPurchase Int?
+
+  usageLimit Int?
+  maxDiscount Int?
+
+  active Boolean @default(true)
+
+  startsAt DateTime?
+
+  expiresAt DateTime?
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usages CouponUsage[]
+}
+
+model CouponUsage {
+  id Int @id @default(autoincrement())
+
+  couponId Int
+  orderId Int
+  userId Int?
+
+  createdAt DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([couponId])
+  @@index([orderId])
+  @@index([userId])
+
+  @@unique([couponId, orderId])
+
+}

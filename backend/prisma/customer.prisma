@@ -1,0 +1,31 @@
+model Address {
+  id Int @id @default(autoincrement())
+
+  userId Int
+
+  label String?
+
+  recipientName String
+
+  phone String
+
+  street String
+
+  district String?
+
+  city String
+
+  province String
+
+  country String @default("Indonesia")
+
+  postalCode String
+
+  isDefault Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
