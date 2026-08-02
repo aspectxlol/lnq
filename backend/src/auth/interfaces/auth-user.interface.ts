@@ -1,7 +1,7 @@
-import type { Role } from "@prisma/client";
+import { roles } from "../../db/schema";
 
 export interface AuthUser {
-  id: number;
+  id: string;
   email: string;
-  role: Role;
+  role: (typeof roles.enumValues)[number];
 }

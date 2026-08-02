@@ -9,7 +9,6 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { RegisterDto } from "./dto/register.dto";
-import { PrismaService } from "../prisma/prisma.service";
 import * as bcrypt from "bcrypt";
 import { AuthUser } from "./interfaces/auth-user.interface";
 import { JwtService } from "@nestjs/jwt";
@@ -21,14 +20,16 @@ import type {
 } from "./interfaces/jwt.interface";
 import * as RefreshJwt from "jsonwebtoken";
 import { DAYS, DAYSINSECONDS } from "../utils";
-import { Prisma } from "@prisma/client";
+import { DrizzleService } from "../db/drizzle.service";
+import { sessions, users } from "../db/schema";
+import { eq } from "drizzle-orm";
 
 @Injectable()
 export class AuthService {
   private readonly RefreshJwtService = RefreshJwt;
   private readonly logger: Logger = new Logger(AuthService.name);
   constructor(
-    private readonly prismaService: PrismaService,
+    private readonly drizzle: DrizzleService,
     private readonly AccessJwtService: JwtService,
   ) {}
 
@@ -37,30 +38,28 @@ export class AuthService {
     req: FastifyRequest,
     res: FastifyReply,
   ) {
-    try {
-      await this.prismaService.user.findFirst({
-        where: {
-          email: registerDto.email,
-        },
-      });
-    } catch (e) {
-      if (
-        e instanceof Prisma.PrismaClientKnownRequestError &&
-        e.code === "P2002"
-      )
-        throw new ConflictException("Email already exists");
+    const existingUser = await this.drizzle.db
+      .select()
+      .from(users)
+      .where(eq(users.email, registerDto.email));
+
+    if (existingUser.length > 0) {
+      throw new ConflictException("Email already exists");
     }
 
     const hash = await bcrypt.hash(registerDto.password, 10);
 
     // Create the user with the hashed password
-    const user = await this.prismaService.user.create({
-      data: {
-        name: registerDto.name,
-        email: registerDto.email,
-        passwordHash: hash,
-      },
-    });
+    const user = (
+      await this.drizzle.db
+        .insert(users)
+        .values({
+          name: registerDto.name,
+          email: registerDto.email,
+          passwordHash: hash,
+        })
+        .returning()
+    )[0];
 
     const authUser: AuthUser = {
       email: user.email,
@@ -73,16 +72,19 @@ export class AuthService {
 
   async login(user: AuthUser, req: FastifyRequest, reply: FastifyReply) {
     let session, refreshToken;
-    await this.prismaService.$transaction(async (prisma) => {
-      session = await prisma.session.create({
-        data: {
-          userId: user.id,
-          ipAddress: req.ip,
-          userAgent: req.headers["user-agent"] || "unknown",
-          expiresAt: new Date(Date.now() + 30 * DAYS), // Set expiration to 30 days
-          refreshTokenHash: "", // Placeholder, will be updated after hashing the refresh token
-        },
-      });
+    await this.drizzle.db.transaction(async (tx) => {
+      session = (
+        await tx
+          .insert(sessions)
+          .values({
+            userId: user.id,
+            ipAddress: req.ip,
+            userAgent: req.headers["user-agent"] || "unknown",
+            expiresAt: new Date(Date.now() + 30 * DAYS), // Set expiration to 30 days
+            refreshTokenHash: "", // Placeholder
+          })
+          .returning()
+      )[0];
 
       refreshToken = this.RefreshJwtService.sign(
         { sid: session.id },
@@ -91,15 +93,13 @@ export class AuthService {
       );
       const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
-      await prisma.session.update({
-        where: {
-          id: session.id,
-        },
-        data: {
+      await tx
+        .update(sessions)
+        .set({
           refreshTokenHash: hashedRefreshToken,
           lastUsedAt: new Date(), // Set the last used timestamp
-        },
-      });
+        })
+        .where(eq(sessions.id, session.id));
     });
 
     const payload: AccessJwtPayload = {
@@ -128,7 +128,7 @@ export class AuthService {
     if (!refreshToken)
       throw new UnauthorizedException("Refresh token not found");
     const { sid: sessionId } = await this.verifyRefreshToken(refreshToken);
-    const session = await this.getValidSession(sessionId);
+    const { session, user } = await this.getValidSession(sessionId);
     const isValidRefreshToken = await bcrypt.compare(
       refreshToken,
       session.refreshTokenHash,
@@ -144,20 +144,28 @@ export class AuthService {
       { expiresIn: "30d" },
     ); // Generate a new unique refresh token
     const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10); // Hash the new refresh token
-    await this.prismaService.session.update({
-      where: {
-        id: session.id,
-      },
-      data: {
+    // await this.prismaService.session.update({
+    //   where: {
+    //     id: session.id,
+    //   },
+    //   data: {
+    //     refreshTokenHash: hashedNewRefreshToken,
+    //     expiresAt: new Date(Date.now() + 30 * DAYS), // Extend expiration to 30 days
+    //     lastUsedAt: new Date(), // Update the last used timestamp
+    //   },
+    // });
+    await this.drizzle.db
+      .update(sessions)
+      .set({
         refreshTokenHash: hashedNewRefreshToken,
         expiresAt: new Date(Date.now() + 30 * DAYS), // Extend expiration to 30 days
         lastUsedAt: new Date(), // Update the last used timestamp
-      },
-    });
+      })
+      .where(eq(sessions.id, session.id));
     const payload: AccessJwtPayload = {
-      sub: session.user.id,
-      email: session.user.email,
-      role: session.user.role,
+      sub: user.id,
+      email: user.email,
+      role: user.role,
       sessionId: session.id,
     };
 
@@ -179,15 +187,12 @@ export class AuthService {
     if (!refreshToken)
       throw new UnauthorizedException("Refresh token not found");
     const { sid: sessionId } = await this.verifyRefreshToken(refreshToken);
-    await this.prismaService.session.update({
-      where: {
-        id: sessionId,
-      },
-      data: {
+    await this.drizzle.db
+      .update(sessions)
+      .set({
         revokedAt: new Date(),
-        revokeReason: "LOGOUT",
-      },
-    });
+      })
+      .where(eq(sessions.id, sessionId));
 
     res.clearCookie("refresh_token", {
       httpOnly: true,
@@ -206,11 +211,9 @@ export class AuthService {
     email: string,
     password: string,
   ): Promise<AuthUser | null> {
-    const user = await this.prismaService.user.findUnique({
-      where: {
-        email: email,
-      },
-    });
+    const user = (
+      await this.drizzle.db.select().from(users).where(eq(users.email, email))
+    )[0];
 
     if (!user) throw new UnauthorizedException("Invalid email or password");
     if (!(await bcrypt.compare(password, user.passwordHash!)))
@@ -224,11 +227,11 @@ export class AuthService {
   }
 
   async validateSession(payload: AccessJwtPayload): Promise<SafeUser> {
-    const session = await this.getValidSession(payload.sessionId);
+    const result = await this.getValidSession(payload.sessionId);
 
-    if (session.user.id !== payload.sub)
+    if (result.user.id !== payload.sub)
       throw new UnauthorizedException("Invalid session");
-    const { passwordHash, ...userWithoutPassword } = session.user; // Exclude passwordHash from the returned user object
+    const { passwordHash, ...userWithoutPassword } = result.user; // Exclude passwordHash from the returned user object
     return userWithoutPassword;
   }
 
@@ -247,24 +250,28 @@ export class AuthService {
     return verified;
   }
 
-  private async getValidSession(sessionId: number) {
-    const session = await this.prismaService.session.findUnique({
-      where: {
-        id: sessionId,
-      },
-      include: {
-        user: true,
-      },
-    });
+  private async getValidSession(sessionId: string) {
+    const session = (
+      await this.drizzle.db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, String(sessionId)))
+        .leftJoin(users, eq(sessions.userId, users.id))
+    )[0];
+
+    const user = session?.users;
 
     if (!session) throw new UnauthorizedException("Invalid session");
-    if (session.revokedAt) throw new UnauthorizedException("Session revoked");
-    if (session.expiresAt < new Date())
+    if (session.sessions.revokedAt)
+      throw new UnauthorizedException("Session revoked");
+    if (session.sessions.expiresAt < new Date())
       throw new UnauthorizedException("Session expired");
 
-    if (!session.user.isActive)
-      throw new UnauthorizedException("User is inactive");
+    if (!user?.isActive) throw new UnauthorizedException("User is inactive");
 
-    return session;
+    return {
+      session: session.sessions,
+      user: user,
+    };
   }
 }

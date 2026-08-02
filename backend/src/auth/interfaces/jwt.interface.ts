@@ -1,25 +1,25 @@
-import { Role } from "@prisma/client";
+import { roles } from "../../db/schema";
 
 export interface AccessJwtPayload {
-  sub: number; // User ID
+  sub: string; // User ID
   email: string;
-  role: Role;
-  sessionId: number; // Session ID
+  role: (typeof roles.enumValues)[number];
+  sessionId: string; // Session ID
 }
 
 export interface RefreshJwtPayload {
-  sid: number; // Session ID
+  sid: string; // Session ID
 }
 
 export interface SafeUser {
-  id: number;
+  id: string;
   createdAt: Date;
+  updatedAt: Date;
   name: string;
   email: string;
   phone: string | null;
-  role: Role;
-  emailVerified: boolean;
+  role: (typeof roles.enumValues)[number];
+  phoneVerifiedAt: Date | null;
+  emailVerifiedAt: Date | null;
   isActive: boolean;
-  inviteId: number | null;
-  updatedAt: Date;
 }
