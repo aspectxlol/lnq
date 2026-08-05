@@ -8,7 +8,7 @@ import {
   Logger,
   UnauthorizedException,
 } from "@nestjs/common";
-import { RegisterDto } from "./dto/register.dto";
+import { RegisterDto } from "./dto/request/register.dto";
 import * as bcrypt from "bcrypt";
 import { AuthUser } from "./interfaces/auth-user.interface";
 import { JwtService } from "@nestjs/jwt";

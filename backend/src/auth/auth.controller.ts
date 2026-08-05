@@ -11,7 +11,7 @@ import {
   Get,
   Res,
 } from "@nestjs/common";
-import { RegisterDto } from "./dto/register.dto";
+import { RegisterDto } from "./dto/request/register.dto";
 import { AuthService } from "./auth.service";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -31,7 +31,7 @@ import { LoginResponseDto } from "./dto/response/login-response.dto";
 import { RefreshResponseDto } from "./dto/response/refresh-response.dto";
 import { MeResponseDto } from "./dto/response/me-response.dto";
 import { LogoutResponseDto } from "./dto/response/logout-response.dto";
-import { LoginDto } from "./dto/login.dto";
+import { LoginDto } from "./dto/request/login.dto";
 
 @ApiTags("Authentication")
 @Controller("auth")
