@@ -27,6 +27,11 @@ import {
   ApiNotFoundResponse,
   ApiConflictResponse,
 } from "@nestjs/swagger";
+import { LoginResponseDto } from "./dto/response/login-response.dto";
+import { RefreshResponseDto } from "./dto/response/refresh-response.dto";
+import { MeResponseDto } from "./dto/response/me-response.dto";
+import { LogoutResponseDto } from "./dto/response/logout-response.dto";
+import { LoginDto } from "./dto/login.dto";
 
 @ApiTags("Authentication")
 @Controller("auth")
@@ -35,7 +40,10 @@ export class AuthController {
 
   @Post("/register")
   @ApiOperation({ summary: "Register a new user" })
-  @ApiCreatedResponse({ description: "User registered successfully" })
+  @ApiCreatedResponse({
+    description: "User registered successfully",
+    type: LoginResponseDto,
+  })
   @ApiBadRequestResponse({ description: "Invalid registration data" })
   @ApiConflictResponse({ description: "Email already exists" })
   register(
@@ -49,10 +57,14 @@ export class AuthController {
   @Post("/login")
   @UseGuards(LocalAuthGuard)
   @ApiOperation({ summary: "Login with email and password" })
-  @ApiOkResponse({ description: "User logged in successfully" })
+  @ApiOkResponse({
+    description: "User logged in successfully",
+    type: LoginResponseDto,
+  })
   @ApiBadRequestResponse({ description: "Invalid login credentials" })
   @ApiUnauthorizedResponse({ description: "Authentication failed" })
   login(
+    @Body() loginDto: LoginDto,
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
@@ -61,7 +73,10 @@ export class AuthController {
 
   @Post("/refresh")
   @ApiOperation({ summary: "Refresh access token" })
-  @ApiOkResponse({ description: "Tokens refreshed successfully" })
+  @ApiOkResponse({
+    description: "Tokens refreshed successfully",
+    type: RefreshResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: "Invalid or expired refresh token" })
   refresh(
     @Req() req: FastifyRequest,
@@ -74,7 +89,10 @@ export class AuthController {
   @Get("/me")
   @UseGuards(JwtGuard)
   @ApiOperation({ summary: "Get current authenticated user" })
-  @ApiOkResponse({ description: "Authenticated user profile returned" })
+  @ApiOkResponse({
+    description: "Authenticated user profile returned",
+    type: MeResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: "Missing or invalid token" })
   @ApiNotFoundResponse({ description: "Authenticated user not found" })
   me(@Req() req: FastifyRequest) {
@@ -83,7 +101,7 @@ export class AuthController {
 
   @Get("/logout")
   @ApiOperation({ summary: "Logout the current user" })
-  @ApiOkResponse({ description: "Logout successful" })
+  @ApiOkResponse({ description: "Logout successful", type: LogoutResponseDto })
   logout(
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
