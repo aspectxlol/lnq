@@ -16,8 +16,10 @@ import { AuthService } from "./auth.service";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { JwtGuard } from "./guards/jwt.guard";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 
-@Controller()
+@ApiTags("Authentication")
+@Controller("auth")
 export class AuthController {
   constructor(private readonly authservice: AuthService) {}
 
@@ -47,6 +49,7 @@ export class AuthController {
     return this.authservice.refresh(req, res);
   }
 
+  @ApiBearerAuth()
   @Get("/me")
   @UseGuards(JwtGuard)
   me(@Req() req: FastifyRequest) {

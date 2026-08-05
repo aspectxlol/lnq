@@ -31,13 +31,19 @@ async function bootstrap() {
   });
 
   const config = new DocumentBuilder()
-    .setTitle("LnQ Ecommerce API")
-    .setDescription("The LnQ Ecommerce API specification")
+    .setTitle("LnQ Commerce API")
+    .setDescription("The LnQ Commerce API specification")
     .setVersion("1.0")
+    .setContact("Louie", "louie.is-a.dev", "gamernxt6@gmail.com")
+    .setLicense("MIT", "https://opensource.org/licenses/MIT")
+    .addBearerAuth({
+      type: "apiKey",
+      name: "access-token",
+    })
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api", app, documentFactory);
+  SwaggerModule.setup("docs", app, documentFactory);
 
   await app.listen({
     port: process.env.PORT ? parseInt(process.env.PORT) : 3001,
