@@ -99,7 +99,7 @@ export class AuthController {
     return req.user;
   }
 
-  @Get("/logout")
+  @Post("/logout")
   @ApiOperation({ summary: "Logout the current user" })
   @ApiOkResponse({ description: "Logout successful", type: LogoutResponseDto })
   logout(

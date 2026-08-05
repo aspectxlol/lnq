@@ -23,6 +23,9 @@ import { DAYS, DAYSINSECONDS } from "../utils";
 import { DrizzleService } from "../db/drizzle.service";
 import { sessions, users } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { LoginResponseDto } from "./dto/response/login-response.dto";
+import { RefreshResponseDto } from "./dto/response/refresh-response.dto";
+import { LogoutResponseDto } from "./dto/response/logout-response.dto";
 
 @Injectable()
 export class AuthService {
@@ -37,7 +40,7 @@ export class AuthService {
     registerDto: RegisterDto,
     req: FastifyRequest,
     res: FastifyReply,
-  ) {
+  ): Promise<LoginResponseDto> {
     const existingUser = await this.drizzle.db
       .select()
       .from(users)
@@ -70,7 +73,11 @@ export class AuthService {
     return this.login(authUser, req, res);
   }
 
-  async login(user: AuthUser, req: FastifyRequest, reply: FastifyReply) {
+  async login(
+    user: AuthUser,
+    req: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<LoginResponseDto> {
     let session, refreshToken;
     await this.drizzle.db.transaction(async (tx) => {
       session = (
@@ -118,12 +125,16 @@ export class AuthService {
     });
 
     return {
+      success: true,
       access_token: this.AccessJwtService.sign(payload),
       userid: user.id,
     };
   }
 
-  async refresh(req: FastifyRequest, reply: FastifyReply) {
+  async refresh(
+    req: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<RefreshResponseDto> {
     const refreshToken = req.cookies["refresh_token"];
     if (!refreshToken)
       throw new UnauthorizedException("Refresh token not found");
@@ -178,11 +189,15 @@ export class AuthService {
     });
 
     return {
+      success: true,
       access_token: this.AccessJwtService.sign(payload),
     };
   }
 
-  async logout(req: FastifyRequest, res: FastifyReply) {
+  async logout(
+    req: FastifyRequest,
+    res: FastifyReply,
+  ): Promise<LogoutResponseDto> {
     const refreshToken = req.cookies["refresh_token"];
     if (!refreshToken)
       throw new UnauthorizedException("Refresh token not found");
@@ -202,6 +217,7 @@ export class AuthService {
     });
 
     return {
+      success: true,
       message: "Logged out successfully",
       timestamp: new Date().toISOString(),
     };
