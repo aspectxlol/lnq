@@ -5,6 +5,7 @@ https://docs.nestjs.com/providers#services
 import type {
   LoginResponse,
   LogoutResponse,
+  MeResponse,
   RefreshResponse,
   RegisterInput,
 } from "@lnq/shared";
@@ -167,8 +168,24 @@ export class AuthService {
     };
   }
 
-  async me(user: AuthUser) {
-    return await this.userRepository.findById(user.id);
+  async me(user: AuthUser): Promise<MeResponse> {
+    const dbUser = await this.userRepository.findById(user.id);
+
+    return {
+      success: true,
+      id: dbUser.id,
+
+      name: dbUser.name,
+      email: dbUser.email,
+      role: dbUser.role,
+      phone: dbUser.phone,
+
+      createdAt: dbUser.createdAt,
+      emailVerifiedAt: dbUser.emailVerifiedAt,
+      phoneVerifiedAt: dbUser.phoneVerifiedAt,
+      updatedAt: dbUser.updatedAt,
+      isActive: dbUser.isActive,
+    };
   }
 
   async validateUser(
