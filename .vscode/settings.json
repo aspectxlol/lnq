@@ -8,5 +8,5 @@
   },
 
   "eslint.validate": ["javascript", "typescript", "vue"],
-  "cSpell.words": ["DAYSINSECONDS"]
+  "cSpell.words": ["DAYSINSECONDS", "ecommerce"]
 }

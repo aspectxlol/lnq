@@ -1,5 +1,14 @@
 # LnQ
 
+![License](https://img.shields.io/github/license/aspectxlol/lnq)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
+![Vue](https://img.shields.io/badge/Vue-3-4FC08D?logo=vuedotjs&logoColor=white)
+![Nuxt](https://img.shields.io/badge/Nuxt-4-00DC82?logo=nuxt&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![Drizzle ORM](https://img.shields.io/badge/Drizzle-ORM-C5F74F)
+![pnpm](https://img.shields.io/badge/pnpm-workspace-F69220?logo=pnpm&logoColor=white)
+
 A modern online storefront built for our family business.
 
 LnQ is the digital storefront for our family-owned business. It was created to modernize how we sell products, manage orders, and serve our customers while preserving the personal experience that has always been part of our business.
@@ -8,47 +17,110 @@ Instead of relying solely on messaging apps, social media, or traditional orderi
 
 Although LnQ was built specifically for our own business, it is designed with the same principles as professional commercial software: reliability, maintainability, security, and scalability.
 
-## Our Goal
+## Status
 
-The goal of LnQ is not to build the biggest ecommerce platform.
+> 🚧 Active Development
 
-The goal is to build the best possible online experience for our own business.
+LnQ is currently under active development and powers our family's business while continuing to evolve. Features and APIs may change until the first stable release.
 
-Every feature exists because it solves a real operational problem—whether that's reducing manual work, organizing inventory, processing customer orders more efficiently, or making it easier for customers to discover and purchase our products.
+## Features
 
-## Customers
+- 🛍️ Customer storefront
+- 📦 Order management
+- 📦 Inventory management
+- 👥 User & role management
+- 🔐 JWT Authentication
+- 📊 Admin dashboard
+- ⭐ Product reviews
+- 🎟️ Discounts & promotions
+- 📱 Responsive design
 
-### Customers can:
+## Project Structure
 
-- Browse the product catalog
-- Search and filter products
-- View detailed product information
-- Manage their shopping cart
-- Place and track orders
-- Manage their account and saved addresses
-- View previous purchases
-- Leave reviews after purchasing products
-- Store Operations
+```text
+lnq/
+├── admin/          # Administration dashboard
+├── backend/        # NestJS API
+├── storefront/     # Customer storefront
+├── packages/
+│   └── shared/     # Shared types & schemas
+└── docs/
+```
 
-LnQ includes a dedicated administration dashboard used to operate the business.
+## Tech Stack
 
-Different roles are responsible for different aspects of the store:
+### Admin
 
-- <b>Staff</b> process and fulfill customer orders.
-- Store <b>Owner</b> manage products, inventory, promotions, and business - operations.
-- <b>Administrators</b> maintain the platform itself, manage privileged users, - and oversee system configuration.
+- Vue 3
+- Vite
+- Pinia
+- Axios
+- Tailwind CSS
 
-This separation of responsibilities helps ensure that every employee has access only to the tools they need.
+### Storefront
 
-# Philosophy
+- Nuxt
+- Vue 3
+- Pinia
+- Axios
+- Tailwind CSS
 
-LnQ is built around a simple idea:
+### Backend
 
-<b>Software should adapt to the business—not force the business to adapt to the software.</b>
+- NestJS
+- Drizzle ORM
+- PostgreSQL
+- JWT Authentication
+- Zod
+- Fastify
 
-Every workflow, permission, and feature is designed around how our family business actually operates. Instead of adding unnecessary complexity, LnQ focuses on making everyday tasks faster, more reliable, and easier to manage, while leaving room for the platform to grow alongside the business in the future.
+### Shared
 
-"LnQ began as a personal project to digitize my family's store. Rather than using an off-the-shelf platform, I wanted to build software tailored to our day-to-day operations while improving my skills as a software engineer. The project serves both as the production system for our business and as a long-term engineering project that I continuously improve." - Louie Hansen
+- TypeScript
+- Zod
+
+### Tooling
+
+- pnpm Workspace
+- ESLint
+- Prettier
+- GitHub Actions
+
+## Monorepo
+
+LnQ is organized as a pnpm workspace.
+
+Applications:
+
+- admin
+- storefront
+- backend
+
+Shared packages:
+
+- @lnq/shared
+
+## Screenshots
+
+Coming soon.
+
+## Getting Started
+
+Setup instructions are currently being documented. A Docker-based development environment is planned to provide a one-command setup experience.
+
+## Why Build It?
+
+Rather than using an existing ecommerce platform, LnQ is built specifically around the workflows of our family business.
+
+This project also serves as a long-term software engineering project, allowing new ideas and architectural improvements to be explored in a real production environment.
+
+## AI Assistance
+
+This project is developed with the assistance of modern AI tools.
+
+AI is used as an engineering assistant for tasks such as generating boilerplate code, explaining concepts, reviewing implementations, and accelerating development. However, the overall architecture, system design, technical decisions, and project direction are designed and maintained by the project author.
+
+Every significant architectural decision is intentionally reviewed before becoming part of the codebase.
 
 # License
 
