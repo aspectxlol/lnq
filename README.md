@@ -49,3 +49,18 @@ LnQ is built around a simple idea:
 Every workflow, permission, and feature is designed around how our family business actually operates. Instead of adding unnecessary complexity, LnQ focuses on making everyday tasks faster, more reliable, and easier to manage, while leaving room for the platform to grow alongside the business in the future.
 
 "LnQ began as a personal project to digitize my family's store. Rather than using an off-the-shelf platform, I wanted to build software tailored to our day-to-day operations while improving my skills as a software engineer. The project serves both as the production system for our business and as a long-term engineering project that I continuously improve." - Louie Hansen
+
+# License
+
+LnQ is released under a permissive open-source license that allows anyone to:
+
+- Use the software for personal or commercial purposes.
+- Modify, extend, and adapt the source code.
+- Copy parts of the project into other applications.
+- Distribute modified versions of the software.
+
+However, the LnQ brand is not included in this license.
+
+The name "LnQ", along with its logos, icons, graphics, images, branding assets, product photography, and other visual identity contained within this repository remain the intellectual property of the project owner and are not licensed for reuse.
+
+If you build your own product using this codebase, you are welcome to do so—but you must remove or replace all LnQ branding before distributing or deploying your version.
