@@ -24,6 +24,7 @@ const onSubmit = async () => {
       error.value = "Login failed. Check your email and password.";
     }
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error(err)
     error.value = "Unable to sign in. Please try again.";
   } finally {
@@ -48,8 +49,7 @@ const onSubmit = async () => {
 
         <label class="field">
           <span>Password</span>
-          <input
-v-model="password" type="password" autocomplete="current-password" minlength="8" required
+          <input v-model="password" type="password" autocomplete="current-password" minlength="8" required
             placeholder="••••••••" />
         </label>
 

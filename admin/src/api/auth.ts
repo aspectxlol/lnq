@@ -10,26 +10,26 @@ import {
 import { api } from "./client";
 
 export async function register(payload: RegisterInput) {
-  const response = await api.post("/auth/register", payload);
-  return response.data as LoginResponse;
+  const response = await api.post<LoginResponse>("/auth/register", payload);
+  return response.data;
 }
 
 export async function login(payload: LoginInput) {
-  const response = await api.post("/auth/login", payload);
-  return response.data as LoginResponse;
+  const response = await api.post<LoginResponse>("/auth/login", payload);
+  return response.data;
 }
 
 export async function refresh() {
-  const response = await api.post("/auth/refresh");
-  return response.data as RefreshResponse;
+  const response = await api.post<RefreshResponse>("/auth/refresh");
+  return response.data;
 }
 
 export async function me() {
-  const response = await api.get("/auth/me");
-  return response.data as MeResponse;
+  const response = await api.get<MeResponse>("/auth/me");
+  return response.data;
 }
 
 export async function logout() {
-  const response = await api.post("/auth/logout");
-  return response.data as LogoutResponse;
+  const response = await api.post<LogoutResponse>("/auth/logout");
+  return response.data;
 }

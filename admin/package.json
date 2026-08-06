@@ -12,11 +12,12 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@lnq/shared": "workspace:*",
     "axios": "^1.19.0",
+    "jwt-decode": "^4.0.0",
     "pinia": "^4.0.2",
     "vue": "^3.5.40",
-    "vue-router": "^5.2.0",
-    "@lnq/shared": "workspace:*"
+    "vue-router": "^5.2.0"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
