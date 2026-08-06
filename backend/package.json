@@ -4,7 +4,7 @@
   "description": "",
   "author": "",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -30,9 +30,6 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-fastify": "^11.1.28",
     "@nestjs/swagger": "^11.4.6",
-    "@prisma/adapter-pg": "^7.9.0",
-    "@prisma/client": "^7.9.0",
-    "@types/passport-jwt": "^4.0.1",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",
     "drizzle": "^1.4.0",
@@ -50,12 +47,12 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/passport-jwt": "^4.0.1",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
-    "@quramy/jest-prisma": "^1.8.2",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",

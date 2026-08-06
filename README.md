@@ -41,9 +41,8 @@ lnq/
 ├── admin/          # Admin dashboard (Vue + Vite)
 ├── backend/        # API server (NestJS + Fastify)
 ├── storefront/     # Customer storefront (Nuxt)
-├── packages/
-│   └── shared/     # Shared types and schemas
-└── docs/           # Documentation
+└── packages/
+    └── shared/     # Shared types and schemas
 ```
 
 ## Tech Stack
