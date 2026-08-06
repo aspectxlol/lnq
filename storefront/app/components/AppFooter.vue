@@ -1,7 +1,12 @@
 <script lang="ts"></script>
 
 <template>
-  <footer style="background: var(--color-surface); border-top: 1px solid var(--color-border)">
+  <footer
+    style="
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+    "
+  >
     <div class="container py-12">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div>
@@ -22,7 +27,8 @@
       </div>
 
       <div class="mt-8 text-sm text-muted">
-        ©{{ new Date().getFullYear() }} LnQ Cake & Cookies - All rights reserved.
+        ©{{ new Date().getFullYear() }} LnQ Cake & Cookies - All rights
+        reserved.
       </div>
     </div>
   </footer>
