@@ -59,7 +59,7 @@ export default [
       "@typescript-eslint/no-explicit-any": "warn",
 
       // General
-      "no-console": "off",
+      "no-console": "warn",
       "no-debugger": "warn",
     },
   },

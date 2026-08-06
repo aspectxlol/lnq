@@ -7,5 +7,6 @@
     "source.fixAll.eslint": "explicit"
   },
 
-  "eslint.validate": ["javascript", "typescript", "vue"]
+  "eslint.validate": ["javascript", "typescript", "vue"],
+  "cSpell.words": ["DAYSINSECONDS"]
 }
