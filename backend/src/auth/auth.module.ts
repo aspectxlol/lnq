@@ -8,6 +8,8 @@ https://docs.nestjs.com/modules
 import { Module } from "@nestjs/common";
 import { LocalStrategy } from "./strategies/local.strategy";
 import { JwtModule } from "@nestjs/jwt/dist/jwt.module";
+import { UserRepository } from "../repositories/auth";
+import { RepositoryModule } from "../repositories/repository.module";
 
 @Module({
   imports: [
@@ -16,6 +18,7 @@ import { JwtModule } from "@nestjs/jwt/dist/jwt.module";
       secret: process.env.JWT_ACCESS_SECRET,
       signOptions: { expiresIn: "15m" },
     }),
+    RepositoryModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, LocalStrategy],

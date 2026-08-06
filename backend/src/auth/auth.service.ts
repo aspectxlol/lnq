@@ -31,43 +31,34 @@ import type {
   RegisterInput,
 } from "@lnq/shared";
 import { RegisterDto } from "./dto/register.dto";
+import { SessionRepository, UserRepository } from "../repositories/auth";
 
 @Injectable()
 export class AuthService {
-  private readonly RefreshJwtService = RefreshJwt;
+  private readonly RefreshJwt = RefreshJwt;
   private readonly logger: Logger = new Logger(AuthService.name);
   constructor(
-    private readonly drizzle: DrizzleService,
+    // private readonly drizzle: DrizzleService,
+    private readonly userRepository: UserRepository,
+    private readonly sessionRepository: SessionRepository,
     private readonly AccessJwtService: JwtService,
   ) {}
 
   async register(
-    registerDto: RegisterDto,
+    registerDto: RegisterInput,
     req: FastifyRequest,
     res: FastifyReply,
   ): Promise<LoginResponse> {
-    const existingUser = await this.drizzle.db
-      .select()
-      .from(users)
-      .where(eq(users.email, registerDto.email));
-
-    if (existingUser.length > 0) {
+    if (await this.userRepository.findByEmail(registerDto.email)) {
       throw new ConflictException("Email already exists");
     }
 
     const hash = await bcrypt.hash(registerDto.password, 10);
-
-    // Create the user with the hashed password
-    const user = (
-      await this.drizzle.db
-        .insert(users)
-        .values({
-          name: registerDto.name,
-          email: registerDto.email,
-          passwordHash: hash,
-        })
-        .returning()
-    )[0];
+    const user = await this.userRepository.create({
+      name: registerDto.name,
+      email: registerDto.email,
+      passwordHash: hash,
+    });
 
     const authUser: AuthUser = {
       email: user.email,
@@ -83,42 +74,29 @@ export class AuthService {
     req: FastifyRequest,
     reply: FastifyReply,
   ): Promise<LoginResponse> {
-    let session, refreshToken;
-    await this.drizzle.db.transaction(async (tx) => {
-      session = (
-        await tx
-          .insert(sessions)
-          .values({
-            userId: user.id,
-            ipAddress: req.ip,
-            userAgent: req.headers["user-agent"] || "unknown",
-            expiresAt: new Date(Date.now() + 30 * DAYS), // Set expiration to 30 days
-            refreshTokenHash: "", // Placeholder
-          })
-          .returning()
-      )[0];
+    const sessionId = crypto.randomUUID();
 
-      refreshToken = this.RefreshJwtService.sign(
-        { sid: session.id },
-        process.env.JWT_REFRESH_SECRET,
-        { expiresIn: "30d" },
-      );
-      const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    const refreshToken = this.RefreshJwt.sign(
+      { sid: sessionId },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: "30d" },
+    );
 
-      await tx
-        .update(sessions)
-        .set({
-          refreshTokenHash: hashedRefreshToken,
-          lastUsedAt: new Date(), // Set the last used timestamp
-        })
-        .where(eq(sessions.id, session.id));
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
+    await this.sessionRepository.create({
+      sessionId,
+      userId: user.id,
+      refreshTokenHash,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"] || "Unknown",
     });
 
     const payload: AccessJwtPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
-      sessionId: session.id,
+      sessionId: sessionId,
     };
 
     reply.setCookie("refresh_token", refreshToken, {
@@ -141,61 +119,31 @@ export class AuthService {
     reply: FastifyReply,
   ): Promise<RefreshResponse> {
     const refreshToken = req.cookies["refresh_token"];
+
     if (!refreshToken)
       throw new UnauthorizedException("Refresh token not found");
+
     const { sid: sessionId } = await this.verifyRefreshToken(refreshToken);
+
     const { session, user } = await this.getValidSession(sessionId);
+
     const isValidRefreshToken = await bcrypt.compare(
       refreshToken,
       session.refreshTokenHash,
     );
-
-    if (!isValidRefreshToken) {
+    if (!isValidRefreshToken)
       throw new UnauthorizedException("Invalid refresh token");
-    }
 
-    const newRefreshToken = this.RefreshJwtService.sign(
-      { sid: sessionId },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: "30d" },
-    ); // Generate a new unique refresh token
-    const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10); // Hash the new refresh token
-    // await this.prismaService.session.update({
-    //   where: {
-    //     id: session.id,
-    //   },
-    //   data: {
-    //     refreshTokenHash: hashedNewRefreshToken,
-    //     expiresAt: new Date(Date.now() + 30 * DAYS), // Extend expiration to 30 days
-    //     lastUsedAt: new Date(), // Update the last used timestamp
-    //   },
-    // });
-    await this.drizzle.db
-      .update(sessions)
-      .set({
-        refreshTokenHash: hashedNewRefreshToken,
-        expiresAt: new Date(Date.now() + 30 * DAYS), // Extend expiration to 30 days
-        lastUsedAt: new Date(), // Update the last used timestamp
-      })
-      .where(eq(sessions.id, session.id));
-    const payload: AccessJwtPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      sessionId: session.id,
-    };
-
-    reply.setCookie("refresh_token", newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/auth/refresh",
-      maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
-    });
+    await this.rotateRefreshToken(sessionId, reply);
 
     return {
       success: true,
-      access_token: this.AccessJwtService.sign(payload),
+      access_token: this.AccessJwtService.sign({
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+        sessionId: session.id,
+      } as AccessJwtPayload),
     };
   }
 
@@ -207,12 +155,8 @@ export class AuthService {
     if (!refreshToken)
       throw new UnauthorizedException("Refresh token not found");
     const { sid: sessionId } = await this.verifyRefreshToken(refreshToken);
-    await this.drizzle.db
-      .update(sessions)
-      .set({
-        revokedAt: new Date(),
-      })
-      .where(eq(sessions.id, sessionId));
+
+    await this.sessionRepository.updateRevokedAt(sessionId);
 
     res.clearCookie("refresh_token", {
       httpOnly: true,
@@ -232,13 +176,10 @@ export class AuthService {
     email: string,
     password: string,
   ): Promise<AuthUser | null> {
-    const user = (
-      await this.drizzle.db.select().from(users).where(eq(users.email, email))
-    )[0];
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) return null;
 
-    if (!user) throw new UnauthorizedException("Invalid email or password");
-    if (!(await bcrypt.compare(password, user.passwordHash!)))
-      throw new UnauthorizedException("Invalid email or password");
+    if (!(await bcrypt.compare(password, user.passwordHash!))) return null;
 
     return {
       id: user.id,
@@ -256,10 +197,10 @@ export class AuthService {
     return userWithoutPassword;
   }
 
-  async verifyRefreshToken(refreshToken): Promise<RefreshJwtPayload> {
+  private async verifyRefreshToken(refreshToken): Promise<RefreshJwtPayload> {
     let verified: RefreshJwtPayload;
     try {
-      verified = this.RefreshJwtService.verify(
+      verified = this.RefreshJwt.verify(
         refreshToken,
         process.env.JWT_REFRESH_SECRET,
       ) as RefreshJwtPayload;
@@ -272,27 +213,44 @@ export class AuthService {
   }
 
   private async getValidSession(sessionId: string) {
-    const session = (
-      await this.drizzle.db
-        .select()
-        .from(sessions)
-        .where(eq(sessions.id, String(sessionId)))
-        .leftJoin(users, eq(sessions.userId, users.id))
-    )[0];
-
-    const user = session?.users;
+    const { session, user } =
+      await this.sessionRepository.findByIdWithUser(sessionId);
 
     if (!session) throw new UnauthorizedException("Invalid session");
-    if (session.sessions.revokedAt)
-      throw new UnauthorizedException("Session revoked");
-    if (session.sessions.expiresAt < new Date())
+    if (session.revokedAt) throw new UnauthorizedException("Session revoked");
+    if (session.expiresAt < new Date())
       throw new UnauthorizedException("Session expired");
 
     if (!user?.isActive) throw new UnauthorizedException("User is inactive");
 
     return {
-      session: session.sessions,
-      user: user,
+      session: session,
+      user,
     };
+  }
+
+  private async rotateRefreshToken(
+    sessionId: string,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const newRefreshToken = this.RefreshJwt.sign(
+      { sid: sessionId },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: "30d" },
+    ); // Generate a new unique refresh token
+
+    const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10); // Hash the new refresh token
+    await this.sessionRepository.updateRefreshToken(
+      sessionId,
+      hashedNewRefreshToken,
+    );
+
+    reply.setCookie("refresh_token", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/auth/refresh",
+      maxAge: 30 * DAYSINSECONDS, // 30 days in seconds
+    });
   }
 }
