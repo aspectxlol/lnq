@@ -167,6 +167,10 @@ export class AuthService {
     };
   }
 
+  async me(user: AuthUser) {
+    return await this.userRepository.findById(user.id);
+  }
+
   async validateUser(
     email: string,
     password: string,

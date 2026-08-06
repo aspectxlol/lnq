@@ -29,7 +29,7 @@ import { LoginDto, LoginResponseDto } from "./dto/login.dto";
 import { LogoutResponseDto } from "./dto/logout.dto";
 import { MeResponseDto } from "./dto/me.dto";
 import { RefreshResponseDto } from "./dto/refresh.dto";
-import { RegisterDto,RegisterResponseDto } from "./dto/register.dto";
+import { RegisterDto, RegisterResponseDto } from "./dto/register.dto";
 import { JwtGuard } from "./guards/jwt.guard";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
 
@@ -96,7 +96,7 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: "Missing or invalid token" })
   @ApiNotFoundResponse({ description: "Authenticated user not found" })
   me(@Req() req: FastifyRequest) {
-    return req.user;
+    return this.authservice.me(req.user);
   }
 
   @Post("/logout")

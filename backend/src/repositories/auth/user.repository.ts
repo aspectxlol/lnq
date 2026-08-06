@@ -8,6 +8,14 @@ import { users } from "../../db/schema";
 export class UserRepository {
   constructor(private readonly drizzle: DrizzleService) {}
 
+  async findById(id: string) {
+    const user = await this.drizzle.db
+      .select()
+      .from(users)
+      .where(eq(users.id, id));
+    return user[0];
+  }
+
   async findByEmail(email: string) {
     const user = await this.drizzle.db
       .select()
