@@ -1,3 +1,4 @@
+export * from "./models/user.model.js";
 export * from "./responses/login.response.js";
 export * from "./responses/logout.response.js";
 export * from "./responses/me.response.js";

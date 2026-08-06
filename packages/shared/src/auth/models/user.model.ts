@@ -1,18 +1,22 @@
 import { z } from "zod";
 
-import { roleSchema } from "../types/role.js";
+import { roleSchema } from "../types/role";
 
-export const meResponseSchema = z.object({
+export const userModel = z.object({
   id: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+
   name: z.string(),
   email: z.string(),
   phone: z.string().nullable(),
   role: roleSchema,
+
+  isActive: z.boolean(),
+
   phoneVerifiedAt: z.date().nullable(),
   emailVerifiedAt: z.date().nullable(),
-  isActive: z.boolean(),
+
+  createdAt: z.date(),
+  updatedAt: z.date(),
 });
 
-export type MeResponse = z.infer<typeof meResponseSchema>;
+export type UserModel = z.infer<typeof userModel>;
