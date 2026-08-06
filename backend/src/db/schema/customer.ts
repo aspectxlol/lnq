@@ -1,19 +1,15 @@
 import {
-  pgTable,
-  uuid,
-  text,
   boolean,
-  integer,
-  timestamp,
-  pgEnum,
-  primaryKey,
-  unique,
   index,
   numeric,
+  pgTable,
+  primaryKey,
+  text,
+  uuid,
 } from "drizzle-orm/pg-core";
 
-import { timestamps } from "./common";
 import { users } from "./auth";
+import { timestamps } from "./common";
 
 export const addresses = pgTable(
   "addresses",

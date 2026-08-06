@@ -1,14 +1,13 @@
 import {
-  pgTable,
-  uuid,
-  text,
   boolean,
-  integer,
-  timestamp,
-  pgEnum,
-  primaryKey,
-  unique,
   index,
+  integer,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  unique,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 import { timestamps } from "./common";

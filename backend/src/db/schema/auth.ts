@@ -1,15 +1,14 @@
 import {
-  pgTable,
-  serial,
-  text,
   boolean,
-  timestamp,
-  integer,
-  unique,
   index,
   pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
+
 import { timestamps } from "./common";
 
 export const roles = pgEnum("roles", ["CUSTOMER", "ADMIN", "OWNER", "STAFF"]);

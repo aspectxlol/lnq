@@ -1,1 +1,142 @@
-{"openapi":"3.0.0","paths":{"/":{"get":{"operationId":"AppController_getHello","parameters":[],"responses":{"200":{"description":""}},"tags":["App"]}},"/auth/register":{"post":{"operationId":"AuthController_register","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/RegisterAuthDto"}}}},"responses":{"201":{"description":"Registration successful"}},"summary":"Register a new local user","tags":["auth"]}},"/auth/login":{"post":{"operationId":"AuthController_login","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/LoginAuthDto"}}}},"responses":{"201":{"description":"Login successful"}},"summary":"Log in with email/phone and password","tags":["auth"]}},"/auth/google":{"get":{"operationId":"AuthController_googleAuth","parameters":[],"responses":{"200":{"description":""}},"summary":"Start Google OAuth login","tags":["auth"]}},"/auth/google/callback":{"get":{"operationId":"AuthController_googleAuthCallback","parameters":[],"responses":{"200":{"description":""}},"summary":"Handle Google OAuth callback","tags":["auth"]}},"/auth/refresh":{"post":{"operationId":"AuthController_refresh","parameters":[],"responses":{"201":{"description":"Token refreshed"}},"summary":"Refresh an access token","tags":["auth"]}},"/auth/me":{"get":{"operationId":"AuthController_me","parameters":[],"responses":{"200":{"description":""}},"summary":"Get the authenticated user","tags":["auth"]}}},"info":{"title":"LnQ Ecommerce API","description":"The LnQ Ecommerce API specification","version":"1.0","contact":{}},"tags":[],"servers":[],"components":{"schemas":{"RegisterAuthDto":{"type":"object","properties":{"firstName":{"type":"string","example":"John","description":"User first name"},"lastName":{"type":"string","example":"Doe","description":"User last name"},"phone":{"type":"string","example":"+1234567890","description":"Phone number"},"email":{"type":"string","example":"john@example.com","description":"Email address"},"password":{"type":"string","example":"strongPassword123","description":"Password"}},"required":["firstName","email","password"]},"LoginAuthDto":{"type":"object","properties":{"identifier":{"type":"string","example":"john@example.com","description":"Email or phone number"},"password":{"type":"string","example":"strongPassword123","description":"Password"}},"required":["identifier","password"]}}}}
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["App"]
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterAuthDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Registration successful" } },
+        "summary": "Register a new local user",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginAuthDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Login successful" } },
+        "summary": "Log in with email/phone and password",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/google": {
+      "get": {
+        "operationId": "AuthController_googleAuth",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "summary": "Start Google OAuth login",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/google/callback": {
+      "get": {
+        "operationId": "AuthController_googleAuthCallback",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "summary": "Handle Google OAuth callback",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "responses": { "201": { "description": "Token refreshed" } },
+        "summary": "Refresh an access token",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "summary": "Get the authenticated user",
+        "tags": ["auth"]
+      }
+    }
+  },
+  "info": {
+    "title": "LnQ Ecommerce API",
+    "description": "The LnQ Ecommerce API specification",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "RegisterAuthDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "example": "John",
+            "description": "User first name"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Doe",
+            "description": "User last name"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+1234567890",
+            "description": "Phone number"
+          },
+          "email": {
+            "type": "string",
+            "example": "john@example.com",
+            "description": "Email address"
+          },
+          "password": {
+            "type": "string",
+            "example": "strongPassword123",
+            "description": "Password"
+          }
+        },
+        "required": ["firstName", "email", "password"]
+      },
+      "LoginAuthDto": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "example": "john@example.com",
+            "description": "Email or phone number"
+          },
+          "password": {
+            "type": "string",
+            "example": "strongPassword123",
+            "description": "Password"
+          }
+        },
+        "required": ["identifier", "password"]
+      }
+    }
+  }
+}

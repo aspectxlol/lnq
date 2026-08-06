@@ -1,20 +1,17 @@
 import {
-  pgTable,
-  uuid,
-  text,
-  boolean,
-  integer,
-  timestamp,
-  pgEnum,
-  primaryKey,
-  unique,
   index,
+  integer,
   numeric,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
 } from "drizzle-orm/pg-core";
 
-import { timestamps } from "./common";
 import { users } from "./auth";
 import { products, productVariants } from "./catalog";
+import { timestamps } from "./common";
 import { addresses } from "./customer";
 
 export const orderStatus = pgEnum("order_status", [

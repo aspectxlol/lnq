@@ -1,19 +1,19 @@
 import {
-  pgTable,
-  uuid,
-  text,
-  integer,
   boolean,
-  timestamp,
-  pgEnum,
-  jsonb,
   index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
   unique,
+  uuid,
 } from "drizzle-orm/pg-core";
 
+import { users } from "./auth";
 import { timestamps } from "./common";
 import { orders } from "./orders";
-import { users } from "./auth";
 
 export const paymentProviders = pgEnum("payment_provider", [
   "MIDTRANS",

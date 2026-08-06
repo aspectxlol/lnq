@@ -1,20 +1,20 @@
 import { relations } from "drizzle-orm";
 
-import { users, accounts, sessions, authTokens, invites } from "./auth";
+import { AuditLog } from "./admin";
+import { accounts, authTokens, invites,sessions, users } from "./auth";
 import {
   categories,
-  products,
   productCategories,
   productImages,
   productOptions,
   productOptionValues,
+  products,
   productVariants,
   productVariantValues,
 } from "./catalog";
 import { addresses } from "./customer";
-import { orders, orderItems, orderItemOptions } from "./orders";
-import { payments, coupons, couponUsages } from "./payment";
-import { AuditLog } from "./admin";
+import { orderItemOptions,orderItems, orders } from "./orders";
+import { coupons, couponUsages,payments } from "./payment";
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),

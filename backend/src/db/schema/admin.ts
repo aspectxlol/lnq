@@ -1,17 +1,13 @@
 import {
-  pgTable,
-  uuid,
-  text,
-  boolean,
-  integer,
-  timestamp,
-  pgEnum,
-  primaryKey,
-  unique,
   index,
-  numeric,
   jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
 } from "drizzle-orm/pg-core";
+
 import { users } from "./auth";
 
 export const auditActions = pgEnum("audit_action", [

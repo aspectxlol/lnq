@@ -2,36 +2,31 @@
 https://docs.nestjs.com/providers#services
 */
 
+import type {
+  LoginResponse,
+  LogoutResponse,
+  RefreshResponse,
+  RegisterInput,
+} from "@lnq/shared";
 import {
   ConflictException,
   Injectable,
   Logger,
   UnauthorizedException,
 } from "@nestjs/common";
-import * as bcrypt from "bcrypt";
-import { AuthUser } from "./interfaces/auth-user.interface";
 import { JwtService } from "@nestjs/jwt";
+import * as bcrypt from "bcrypt";
 import { FastifyReply, FastifyRequest } from "fastify";
+import * as RefreshJwt from "jsonwebtoken";
+
+import { SessionRepository, UserRepository } from "../repositories/auth";
+import { DAYSINSECONDS } from "../utils";
+import { AuthUser } from "./interfaces/auth-user.interface";
 import type {
   AccessJwtPayload,
   RefreshJwtPayload,
   SafeUser,
 } from "./interfaces/jwt.interface";
-import * as RefreshJwt from "jsonwebtoken";
-import { DAYS, DAYSINSECONDS } from "../utils";
-import { DrizzleService } from "../db/drizzle.service";
-import { sessions, users } from "../db/schema";
-import { eq } from "drizzle-orm";
-
-import type {
-  LoginResponse,
-  LogoutResponse,
-  MeResponse,
-  RefreshResponse,
-  RegisterInput,
-} from "@lnq/shared";
-import { RegisterDto } from "./dto/register.dto";
-import { SessionRepository, UserRepository } from "../repositories/auth";
 
 @Injectable()
 export class AuthService {
@@ -193,6 +188,7 @@ export class AuthService {
 
     if (result.user.id !== payload.sub)
       throw new UnauthorizedException("Invalid session");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, unused-imports/no-unused-vars
     const { passwordHash, ...userWithoutPassword } = result.user; // Exclude passwordHash from the returned user object
     return userWithoutPassword;
   }

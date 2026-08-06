@@ -1,6 +1,7 @@
 import { Controller, Get } from "@nestjs/common";
+import { ApiOkResponse,ApiOperation, ApiTags } from "@nestjs/swagger";
+
 import { AppService } from "./app.service";
-import { ApiTags, ApiOperation, ApiOkResponse } from "@nestjs/swagger";
 import { HealthResponseDto } from "./app/dto/health-response.dto";
 
 @ApiTags("Root")

@@ -5,32 +5,33 @@ https://docs.nestjs.com/controllers#controllers
 import {
   Body,
   Controller,
-  Post,
-  UseGuards,
-  Req,
   Get,
+  Post,
+  Req,
   Res,
+  UseGuards,
 } from "@nestjs/common";
-import { AuthService } from "./auth.service";
-import { LocalAuthGuard } from "./guards/local-auth.guard";
-import type { FastifyReply, FastifyRequest } from "fastify";
-import { JwtGuard } from "./guards/jwt.guard";
 import {
-  ApiBearerAuth,
-  ApiTags,
-  ApiOperation,
-  ApiCreatedResponse,
-  ApiOkResponse,
   ApiBadRequestResponse,
-  ApiUnauthorizedResponse,
-  ApiNotFoundResponse,
+  ApiBearerAuth,
   ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { RegisterResponseDto, RegisterDto } from "./dto/register.dto";
+import type { FastifyReply, FastifyRequest } from "fastify";
+
+import { AuthService } from "./auth.service";
 import { LoginDto, LoginResponseDto } from "./dto/login.dto";
-import { RefreshResponseDto } from "./dto/refresh.dto";
-import { MeResponseDto } from "./dto/me.dto";
 import { LogoutResponseDto } from "./dto/logout.dto";
+import { MeResponseDto } from "./dto/me.dto";
+import { RefreshResponseDto } from "./dto/refresh.dto";
+import { RegisterDto,RegisterResponseDto } from "./dto/register.dto";
+import { JwtGuard } from "./guards/jwt.guard";
+import { LocalAuthGuard } from "./guards/local-auth.guard";
 
 @ApiTags("Authentication")
 @Controller("auth")
