@@ -104,7 +104,6 @@ export class AuthService {
     });
 
     return {
-      success: true,
       access_token: this.AccessJwtService.sign(payload),
       userid: user.id,
     };
@@ -133,7 +132,6 @@ export class AuthService {
     await this.rotateRefreshToken(sessionId, reply);
 
     return {
-      success: true,
       access_token: this.AccessJwtService.sign({
         sub: user.id,
         email: user.email,
@@ -162,7 +160,6 @@ export class AuthService {
     });
 
     return {
-      success: true,
       message: "Logged out successfully",
       timestamp: new Date().toISOString(),
     };
@@ -172,7 +169,6 @@ export class AuthService {
     const dbUser = await this.userRepository.findById(user.id);
 
     return {
-      success: true,
       id: dbUser.id,
 
       name: dbUser.name,
