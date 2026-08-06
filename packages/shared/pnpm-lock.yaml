@@ -1,0 +1,47 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      crypto:
+        specifier: ^1.0.1
+        version: 1.0.1
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^26.1.2
+        version: 26.1.2
+
+packages:
+
+  '@types/node@26.1.2':
+    resolution: {integrity: sha512-Vu4a5UFA9rIIFJ7rB/Vaafh9lrCQszopTCx6KjFboXTGQbPNasehVR5TEiithSDGyd1DEiUByggTZsg8jukeIg==}
+
+  crypto@1.0.1:
+    resolution: {integrity: sha512-VxBKmeNcqQdiUQUW2Tzq0t377b54N2bMtXO/qiLa+6eRRmmC4qT3D4OnTGoT/U6O9aklQ/jTwbOtRMTTY8G0Ig==}
+    deprecated: This package is no longer supported. It's now a built-in Node module. If you've depended on crypto, you should switch to the one that's built-in.
+
+  undici-types@8.3.0:
+    resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
+
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
+snapshots:
+
+  '@types/node@26.1.2':
+    dependencies:
+      undici-types: 8.3.0
+
+  crypto@1.0.1: {}
+
+  undici-types@8.3.0: {}
+
+  zod@4.4.3: {}
