@@ -8,7 +8,6 @@ import {
   Logger,
   UnauthorizedException,
 } from "@nestjs/common";
-import { RegisterDto } from "./dto/request/register.dto";
 import * as bcrypt from "bcrypt";
 import { AuthUser } from "./interfaces/auth-user.interface";
 import { JwtService } from "@nestjs/jwt";
@@ -23,9 +22,15 @@ import { DAYS, DAYSINSECONDS } from "../utils";
 import { DrizzleService } from "../db/drizzle.service";
 import { sessions, users } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { LoginResponseDto } from "./dto/response/login-response.dto";
-import { RefreshResponseDto } from "./dto/response/refresh-response.dto";
-import { LogoutResponseDto } from "./dto/response/logout-response.dto";
+
+import type {
+  LoginResponse,
+  LogoutResponse,
+  MeResponse,
+  RefreshResponse,
+  RegisterInput,
+} from "@lnq/shared";
+import { RegisterDto } from "./dto/register.dto";
 
 @Injectable()
 export class AuthService {
@@ -40,7 +45,7 @@ export class AuthService {
     registerDto: RegisterDto,
     req: FastifyRequest,
     res: FastifyReply,
-  ): Promise<LoginResponseDto> {
+  ): Promise<LoginResponse> {
     const existingUser = await this.drizzle.db
       .select()
       .from(users)
@@ -77,7 +82,7 @@ export class AuthService {
     user: AuthUser,
     req: FastifyRequest,
     reply: FastifyReply,
-  ): Promise<LoginResponseDto> {
+  ): Promise<LoginResponse> {
     let session, refreshToken;
     await this.drizzle.db.transaction(async (tx) => {
       session = (
@@ -134,7 +139,7 @@ export class AuthService {
   async refresh(
     req: FastifyRequest,
     reply: FastifyReply,
-  ): Promise<RefreshResponseDto> {
+  ): Promise<RefreshResponse> {
     const refreshToken = req.cookies["refresh_token"];
     if (!refreshToken)
       throw new UnauthorizedException("Refresh token not found");
@@ -197,7 +202,7 @@ export class AuthService {
   async logout(
     req: FastifyRequest,
     res: FastifyReply,
-  ): Promise<LogoutResponseDto> {
+  ): Promise<LogoutResponse> {
     const refreshToken = req.cookies["refresh_token"];
     if (!refreshToken)
       throw new UnauthorizedException("Refresh token not found");

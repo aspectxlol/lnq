@@ -22,6 +22,7 @@
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
     "@fastify/static": "^10.1.0",
+    "@lnq/shared": "workspace:*",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",
@@ -38,13 +39,15 @@
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.10.0",
     "jsonwebtoken": "^9.0.3",
+    "nestjs-zod": "^5.5.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "postgres": "^3.4.9",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

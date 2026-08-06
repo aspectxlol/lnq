@@ -11,7 +11,6 @@ import {
   Get,
   Res,
 } from "@nestjs/common";
-import { RegisterDto } from "./dto/request/register.dto";
 import { AuthService } from "./auth.service";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
 import type { FastifyReply, FastifyRequest } from "fastify";
@@ -27,11 +26,11 @@ import {
   ApiNotFoundResponse,
   ApiConflictResponse,
 } from "@nestjs/swagger";
-import { LoginResponseDto } from "./dto/response/login-response.dto";
-import { RefreshResponseDto } from "./dto/response/refresh-response.dto";
-import { MeResponseDto } from "./dto/response/me-response.dto";
-import { LogoutResponseDto } from "./dto/response/logout-response.dto";
-import { LoginDto } from "./dto/request/login.dto";
+import { RegisterResponseDto, RegisterDto } from "./dto/register.dto";
+import { LoginDto, LoginResponseDto } from "./dto/login.dto";
+import { RefreshResponseDto } from "./dto/refresh.dto";
+import { MeResponseDto } from "./dto/me.dto";
+import { LogoutResponseDto } from "./dto/logout.dto";
 
 @ApiTags("Authentication")
 @Controller("auth")
@@ -42,7 +41,7 @@ export class AuthController {
   @ApiOperation({ summary: "Register a new user" })
   @ApiCreatedResponse({
     description: "User registered successfully",
-    type: LoginResponseDto,
+    type: RegisterResponseDto,
   })
   @ApiBadRequestResponse({ description: "Invalid registration data" })
   @ApiConflictResponse({ description: "Email already exists" })
