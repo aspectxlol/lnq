@@ -8,5 +8,39 @@
   },
 
   "eslint.validate": ["javascript", "typescript", "vue"],
-  "cSpell.words": ["DAYSINSECONDS", "ecommerce"]
+  "cSpell.words": ["DAYSINSECONDS", "ecommerce"],
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "package.json": "package-lock.json,pnpm-lock.yaml,yarn.lock,bun.lock,bun.lockb,npm-shrinkwrap.json,.npmrc,.nvmrc,.node-version,.prettier*,eslint.config.*,tsconfig*.json,vitest.config.*,jest.config.*,playwright.config.*,cypress.config.*,biome.json,knip.json,typedoc.json,pnpm-workspace.yaml",
+
+    "tsconfig.json": "tsconfig.app.json,tsconfig.node.json,tsconfig.build.json,tsconfig.eslint.json,tsconfig.spec.json,tsconfig.test.json",
+
+    "docker-compose.yml": "docker-compose.*.yml,Dockerfile,Dockerfile.*,dockerfile,.dockerignore",
+
+    ".env": ".env.*",
+
+    ".gitignore": ".gitattributes,.gitmodules,.git-blame-ignore-revs",
+
+    "README.md": "LICENSE,CHANGELOG.md,CONTRIBUTING.md,CODE_OF_CONDUCT.md,SECURITY.md,SUPPORT.md,ROADMAP.md,VISION.md",
+
+    "vite.config.*": "vitest.workspace.*,vitest.config.*,playwright.config.*,cypress.config.*",
+
+    "eslint.config.*": ".eslintignore",
+
+    ".prettierrc": ".prettierignore",
+    ".prettierrc.json": ".prettierignore",
+    ".prettierrc.js": ".prettierignore",
+    ".prettierrc.cjs": ".prettierignore",
+
+    "drizzle.config.*": "drizzle/,migrations/",
+
+    "schema.prisma": "prisma/",
+
+    "tailwind.config.*": "postcss.config.*,components.json",
+
+    "nuxt.config.*": ".output/,nitro.config.*",
+
+    "nest-cli.json": "tsconfig.build.json"
+  }
 }
