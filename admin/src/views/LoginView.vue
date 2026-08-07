@@ -49,7 +49,8 @@ const onSubmit = async () => {
 
         <label class="field">
           <span>Password</span>
-          <input v-model="password" type="password" autocomplete="current-password" minlength="8" required
+          <input
+v-model="password" type="password" autocomplete="current-password" minlength="8" required
             placeholder="••••••••" />
         </label>
 
