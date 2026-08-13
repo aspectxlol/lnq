@@ -9,7 +9,7 @@ const router = useRouter();
 
 const email = ref("");
 const password = ref("");
-const error = ref<String | null>(null);
+const error = ref<string | null>(null);
 const loading = ref(false);
 
 const onSubmit = async () => {

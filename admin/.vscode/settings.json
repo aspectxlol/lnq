@@ -14,5 +14,9 @@
     "strings": "on"
   },
   "tailwindCSS.classAttributes": ["class", "ui"],
-  "tailwindCSS.classFunctions": ["defineAppConfig"]
+  "tailwindCSS.classFunctions": ["defineAppConfig"],
+  "cSpell.words": ["lucide", "nuxt", "reka"],
+  "[vue]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
