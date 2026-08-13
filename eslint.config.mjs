@@ -1,10 +1,12 @@
 import js from "@eslint/js";
+import tsParser from "@typescript-eslint/parser";
 import prettier from "eslint-config-prettier";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import unusedImports from "eslint-plugin-unused-imports";
 import vue from "eslint-plugin-vue";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+import vueParser from "vue-eslint-parser";
 
 export default [
   {
@@ -61,6 +63,19 @@ export default [
       // General
       "no-console": "warn",
       "no-debugger": "warn",
+    },
+  },
+
+  {
+    files: ["**/*.vue"],
+    languageOptions: {
+      parser: vueParser,
+      parserOptions: {
+        parser: tsParser,
+        sourceType: "module",
+        ecmaVersion: "latest",
+        extraFileExtensions: [".vue"],
+      },
     },
   },
 
