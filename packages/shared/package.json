@@ -2,9 +2,15 @@
   "name": "@lnq/shared",
   "private": true,
   "type": "module",
+  "scripts": {
+    "build": "tsc -b"
+  },
   "exports": {
-    ".": "./src/index.ts",
-    "./*": "./src/*"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   },
   "peerDependencies": {
     "zod": "^4.4.3"
