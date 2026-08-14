@@ -14,11 +14,16 @@ import { AppModule } from "./app.module";
 async function bootstrap() {
   const adapter = new FastifyAdapter();
 
-  // @ts-expect-error - @fastify/cookie type is incompatible with Fastify plugin system
-  // This is a known issue where the library's type export doesn't match the expected plugin interface
-  await adapter.register(fastifyCookie, {
-    secret: process.env.COOKIE_SECRET || "development-secret",
-  });
+  // Get the underlying Fastify instance and register cookie plugin
+  const fastifyInstance = adapter.getInstance();
+
+  // Register the cookie plugin directly on the Fastify instance
+  // The plugin type doesn't match Fastify's expected signature due to library type definitions,
+  // but it's compatible at runtime. We cast through unknown to safely bridge this gap.
+  await fastifyInstance.register(
+    fastifyCookie as unknown as Parameters<typeof fastifyInstance.register>[0],
+    { secret: process.env.COOKIE_SECRET || "development-secret" },
+  );
 
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
