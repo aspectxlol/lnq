@@ -6,47 +6,6 @@ import { computed, ref } from "vue";
 const open = ref(true);
 const colorMode = useColorMode();
 
-const workspace = ref({
-  label: "LnQ Cake & Cookies",
-  avatar: {
-    src: "/logo.png",
-    alt: "LnQ",
-  },
-});
-
-const workspaces = ref([
-  {
-    label: "LnQ Cake & Cookies",
-    avatar: {
-      src: "/logo.png",
-      alt: "LnQ",
-    },
-  },
-  {
-    label: "Development",
-    avatar: {
-      src: "https://github.com/nuxt.png",
-      alt: "Development",
-    },
-  },
-]);
-
-const workspaceItems = computed<DropdownMenuItem[][]>(() => [
-  workspaces.value.map((item, index) => ({
-    ...item,
-    kbds: ["meta", String(index + 1)],
-    onSelect() {
-      workspace.value = item;
-    },
-  })),
-  [
-    {
-      label: "Workspace settings",
-      icon: "i-lucide-settings-2",
-    },
-  ],
-]);
-
 function getItems(state: "collapsed" | "expanded") {
   return [
     {
@@ -216,35 +175,21 @@ const userItems = computed<DropdownMenuItem[][]>(() => [
     }">
       <!-- Workspace -->
       <template #header>
-        <UDropdownMenu :items="workspaceItems" :content="{
-          align: 'start',
-          collisionPadding: 12,
-        }" :ui="{
-          content: 'w-(--reka-dropdown-menu-trigger-width) min-w-64',
-        }">
-          <UButton v-bind="workspace" trailing-icon="i-lucide-chevrons-up-down" color="neutral" variant="ghost"
-            class="w-full overflow-hidden rounded-xl px-2.5 py-2 hover:bg-elevated" :ui="{
-              trailingIcon: 'text-dimmed ms-auto',
-            }">
-            <template #leading>
-              <div
-                class="size-8 shrink-0 rounded-lg bg-primary/10 ring-1 ring-primary/20 flex items-center justify-center overflow-hidden">
-                <UAvatar v-bind="workspace.avatar" size="sm" class="rounded-lg" />
-              </div>
-            </template>
+        <div class="flex items-center gap-3 rounded-xl px-2.5 py-2">
+          <div
+            class="size-8 shrink-0 rounded-lg bg-primary/10 ring-1 ring-primary/20 flex items-center justify-center overflow-hidden">
+            <UAvatar src="/logo.png" alt="LnQ" size="sm" class="rounded-lg" />
+          </div>
 
-            <template #default>
-              <div class="min-w-0 text-left">
-                <div class="font-semibold truncate">
-                  {{ workspace.label }}
-                </div>
-                <div class="text-xs text-dimmed truncate">
-                  Admin workspace
-                </div>
-              </div>
-            </template>
-          </UButton>
-        </UDropdownMenu>
+          <div class="min-w-0 flex-1">
+            <div class="font-bold tracking-tight truncate">
+              LnQ
+            </div>
+            <div class="text-[11px] text-dimmed truncate">
+              Cake & Cookies
+            </div>
+          </div>
+        </div>
       </template>
 
       <!-- Navigation -->
@@ -345,7 +290,7 @@ const userItems = computed<DropdownMenuItem[][]>(() => [
       </header>
 
       <main class="flex-1 p-6">
-        <Placeholder class="size-full" />
+        <RouterView />
       </main>
     </div>
   </div>

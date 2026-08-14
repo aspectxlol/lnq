@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import { RouterView } from "vue-router";
 
-import AppSidebar from "./components/AppSidebar.vue";
 
 </script>
 
 <template>
   <UApp>
     <div class="app-shell">
-      <AppSidebar />
       <RouterView />
     </div>
   </UApp>
