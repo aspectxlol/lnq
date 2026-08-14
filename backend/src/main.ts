@@ -1,6 +1,5 @@
 import "dotenv/config";
 
-import cookie from "@fastify/cookie";
 import { ConsoleLogger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import {
@@ -8,13 +7,22 @@ import {
   NestFastifyApplication,
 } from "@nestjs/platform-fastify";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import fastifyCookie from "@fastify/cookie";
 
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
+  const adapter = new FastifyAdapter();
+
+  // @ts-expect-error - @fastify/cookie type is incompatible with Fastify plugin system
+  // This is a known issue where the library's type export doesn't match the expected plugin interface
+  await adapter.register(fastifyCookie, {
+    secret: process.env.COOKIE_SECRET || "development-secret",
+  });
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter(),
+    adapter,
     {
       logger: new ConsoleLogger({
         prefix: "Backend",
@@ -25,11 +33,6 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : "*",
     credentials: true,
-  });
-
-  app.register(cookie, {
-    secret: process.env.COOKIE_SECRET,
-    parseOptions: {},
   });
 
   const config = new DocumentBuilder()
