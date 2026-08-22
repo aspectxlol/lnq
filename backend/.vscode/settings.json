@@ -1,3 +1,4 @@
 {
-  "cSpell.words": ["DAYSINSECONDS"]
+  "cSpell.words": ["DAYSINSECONDS"],
+  "js/ts.tsdk.path": "node_modules\\typescript\\lib"
 }
