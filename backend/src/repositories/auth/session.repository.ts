@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 
 import { DrizzleService } from "../../db/drizzle.service";
-import { sessions, users } from "../../db/schema";
+import { Session, sessions, User, users } from "../../db/schema";
 import { DAYS } from "../../utils";
 
 @Injectable()
@@ -21,7 +21,7 @@ export class SessionRepository {
     refreshTokenHash: string;
     ip: string;
     userAgent: string;
-  }) {
+  }): Promise<Session> {
     return (
       await this.drizzle.db
         .insert(sessions)
@@ -59,7 +59,9 @@ export class SessionRepository {
       .where(eq(sessions.id, id));
   }
 
-  async findByIdWithUser(id: string) {
+  async findByIdWithUser(
+    id: string,
+  ): Promise<{ session: Session; user: User | null } | undefined> {
     const data = (
       await this.drizzle.db
         .select()
