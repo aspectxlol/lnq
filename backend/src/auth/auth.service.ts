@@ -167,6 +167,7 @@ export class AuthService {
 
   async me(user: AuthUser): Promise<MeResponse> {
     const dbUser = await this.userRepository.findById(user.id);
+    if (!dbUser) throw new UnauthorizedException("User not found");
 
     return {
       id: dbUser.id,
@@ -226,8 +227,10 @@ export class AuthService {
   }
 
   private async getValidSession(sessionId: string) {
-    const { session, user } =
-      await this.sessionRepository.findByIdWithUser(sessionId);
+    const result = await this.sessionRepository.findByIdWithUser(sessionId);
+    if (!result) throw new UnauthorizedException("No Session Found");
+
+    const { session, user } = result;
 
     if (!session) throw new UnauthorizedException("Invalid session");
     if (session.revokedAt) throw new UnauthorizedException("Session revoked");
