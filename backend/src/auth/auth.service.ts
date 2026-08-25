@@ -170,6 +170,7 @@ export class AuthService {
   async me(user: AuthUser): Promise<MeResponse> {
     const dbUser = await this.userRepository.findById(user.id);
     if (!dbUser) throw new UnauthorizedException("User not found");
+    if (!dbUser.isActive) throw new UnauthorizedException("User is inactive");
 
     return {
       id: dbUser.id,
