@@ -126,8 +126,10 @@ export class AuthService {
       refreshToken,
       session.refreshTokenHash,
     );
-    if (!isValidRefreshToken)
+    if (!isValidRefreshToken) {
+      await this.sessionRepository.updateRevokedAt(sessionId);
       throw new UnauthorizedException("Invalid refresh token");
+    }
 
     await this.rotateRefreshToken(sessionId, reply);
 
