@@ -56,7 +56,8 @@ export class SessionRepository {
     return await this.drizzle.db
       .update(sessions)
       .set({ revokedAt: new Date() })
-      .where(eq(sessions.id, id));
+      .where(eq(sessions.id, id))
+      .returning();
   }
 
   async findByIdWithUser(

@@ -53,6 +53,8 @@
     "@nestjs/schematics": "^11.1.0",
     "@nestjs/testing": "^11.2.1",
     "@quramy/jest-prisma": "^1.8.2",
+    "@swc/core": "^1.16.1",
+    "@swc/jest": "^0.2.39",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
@@ -88,7 +90,21 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.(t|j)s$": [
+        "@swc/jest",
+        {
+          "jsc": {
+            "parser": {
+              "syntax": "typescript",
+              "decorators": true
+            },
+            "transform": {
+              "legacyDecorator": true,
+              "decoratorMetadata": true
+            }
+          }
+        }
+      ]
     },
     "setupFilesAfterEnv": [
       "<rootDir>/../jest.setup.ts"

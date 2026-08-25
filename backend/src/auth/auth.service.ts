@@ -195,15 +195,21 @@ export class AuthService {
     password: string,
   ): Promise<AuthUser | null> {
     const user = await this.userRepository.findByEmail(email);
-    if (!user) return null;
-    if (!user.isActive) return null;
 
     if (!user) {
       await bcrypt.compare(password, this.dummyPasswordHash);
       return null;
     }
 
-    if (!(await bcrypt.compare(password, user.passwordHash!))) return null;
+    const passwordValid = await bcrypt.compare(password, user.passwordHash!);
+
+    if (!passwordValid) {
+      return null;
+    }
+
+    if (!user.isActive) {
+      return null;
+    }
 
     return {
       id: user.id,
