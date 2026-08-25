@@ -33,6 +33,8 @@ import type {
 export class AuthService {
   private readonly RefreshJwt = RefreshJwt;
   private readonly logger: Logger = new Logger(AuthService.name);
+  private readonly dummyPasswordHash =
+    "$2a$12$gTStWrVLvBgHg8V8W6db7uaA3VY9kiHpKscpUhBJBL8zRoLuqeVpC";
   constructor(
     // private readonly drizzle: DrizzleService,
     private readonly userRepository: UserRepository,
@@ -194,6 +196,12 @@ export class AuthService {
   ): Promise<AuthUser | null> {
     const user = await this.userRepository.findByEmail(email);
     if (!user) return null;
+    if (!user.isActive) return null;
+
+    if (!user) {
+      await bcrypt.compare(password, this.dummyPasswordHash);
+      return null;
+    }
 
     if (!(await bcrypt.compare(password, user.passwordHash!))) return null;
 
