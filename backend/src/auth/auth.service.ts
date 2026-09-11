@@ -1,7 +1,3 @@
-/*
-https://docs.nestjs.com/providers#services
-*/
-
 import type {
   LoginResponse,
   LogoutResponse,
@@ -20,7 +16,11 @@ import * as bcrypt from "bcrypt";
 import { FastifyReply, FastifyRequest } from "fastify";
 import * as RefreshJwt from "jsonwebtoken";
 
-import { SessionRepository, UserRepository } from "../repositories/auth";
+import {
+  AccountRepository,
+  SessionRepository,
+  UserRepository,
+} from "../repositories/auth";
 import { DAYSINSECONDS } from "../utils";
 import { AuthUser } from "./interfaces/auth-user.interface";
 import type {
@@ -28,6 +28,8 @@ import type {
   RefreshJwtPayload,
   SafeUser,
 } from "./interfaces/jwt.interface";
+import { AuthProvider } from "../db/schema";
+import { LinkProviderDto } from "./interfaces/link.dto";
 
 @Injectable()
 export class AuthService {
@@ -35,10 +37,12 @@ export class AuthService {
   private readonly logger: Logger = new Logger(AuthService.name);
   private readonly dummyPasswordHash =
     "$2a$12$gTStWrVLvBgHg8V8W6db7uaA3VY9kiHpKscpUhBJBL8zRoLuqeVpC";
+  private readonly googleLinkStatePurpose = "LINK_GOOGLE";
   constructor(
     // private readonly drizzle: DrizzleService,
     private readonly userRepository: UserRepository,
     private readonly sessionRepository: SessionRepository,
+    private readonly accountRepository: AccountRepository,
     private readonly AccessJwtService: JwtService,
   ) {}
 
@@ -218,6 +222,55 @@ export class AuthService {
     };
   }
 
+  async validateGoogleUser(
+    googleId: string,
+    email: string,
+    name: string,
+  ): Promise<AuthUser> {
+    const account =
+      await this.accountRepository.findProviderByAccountIdWithUser(
+        "GOOGLE",
+        googleId,
+      );
+
+    if (account) {
+      if (!account.users?.isActive) {
+        throw new UnauthorizedException("User is inactive");
+      }
+
+      return {
+        id: account.users!.id,
+        email: account.users!.email,
+        role: account.users!.role,
+      };
+    }
+
+    const existingUser = await this.userRepository.findByEmail(email);
+    if (existingUser) {
+      throw new UnauthorizedException(
+        "Please log in with your email/password account and link Google there.",
+      );
+    }
+
+    const newUser = await this.userRepository.create({
+      name,
+      email,
+      passwordHash: undefined,
+    });
+
+    await this.accountRepository.create({
+      userId: newUser.id,
+      provider: "GOOGLE",
+      providerAccountId: googleId,
+    });
+
+    return {
+      id: newUser.id,
+      email: newUser.email,
+      role: newUser.role,
+    };
+  }
+
   async validateSession(payload: AccessJwtPayload): Promise<SafeUser> {
     const result = await this.getValidSession(payload.sessionId);
 
@@ -228,7 +281,9 @@ export class AuthService {
     return userWithoutPassword;
   }
 
-  private async verifyRefreshToken(refreshToken): Promise<RefreshJwtPayload> {
+  private async verifyRefreshToken(
+    refreshToken: string,
+  ): Promise<RefreshJwtPayload> {
     let verified: RefreshJwtPayload;
     try {
       verified = this.RefreshJwt.verify(
@@ -241,6 +296,41 @@ export class AuthService {
       throw new UnauthorizedException("Invalid refresh token");
     }
     return verified;
+  }
+
+  createGoogleLinkState(user: SafeUser): string {
+    return this.AccessJwtService.sign(
+      { sub: user.id, purpose: this.googleLinkStatePurpose },
+      { expiresIn: "5m" },
+    );
+  }
+
+  verifyGoogleLinkState(token: string): string {
+    try {
+      const payload = this.AccessJwtService.verify(token) as {
+        sub?: string;
+        purpose?: string;
+      };
+
+      if (!payload?.sub || payload.purpose !== this.googleLinkStatePurpose) {
+        throw new UnauthorizedException("Invalid link state");
+      }
+
+      return payload.sub;
+    } catch (err) {
+      this.logger.error("Google link state verification failed:", err);
+      throw new UnauthorizedException("Invalid link state");
+    }
+  }
+
+  async getSafeUserForLink(userId: string): Promise<SafeUser> {
+    const user = await this.userRepository.findById(userId);
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException("Invalid user for linking");
+    }
+
+    const { passwordHash, ...safeUser } = user;
+    return safeUser;
   }
 
   private async getValidSession(sessionId: string) {
@@ -284,6 +374,39 @@ export class AuthService {
       sameSite: "lax",
       path: "/auth/refresh",
       maxAge: 30 * DAYSINSECONDS, // 30 days in seconds
+    });
+  }
+
+  async linkGoogleAccount(
+    provider: AuthProvider,
+    user: SafeUser,
+    linkDto: LinkProviderDto,
+  ) {
+    if (!user || !user.id) {
+      throw new UnauthorizedException(
+        "User must be authenticated to link providers",
+      );
+    }
+
+    const account =
+      await this.accountRepository.findProviderByAccountIdWithUser(
+        provider,
+        linkDto.providerAccountId,
+      );
+
+    if (account) {
+      if (account.users?.id !== user.id) {
+        throw new ConflictException(
+          "That Google account is already linked to another user",
+        );
+      }
+      return; // already linked
+    }
+
+    await this.accountRepository.create({
+      userId: user.id,
+      provider,
+      providerAccountId: linkDto.providerAccountId,
     });
   }
 }

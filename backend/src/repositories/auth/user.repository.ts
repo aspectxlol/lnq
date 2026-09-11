@@ -27,7 +27,7 @@ export class UserRepository {
   async create(payload: {
     name: string;
     email: string;
-    passwordHash: string;
+    passwordHash: string | undefined;
   }): Promise<User> {
     const user = await this.drizzle.db
       .insert(users)

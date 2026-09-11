@@ -1,6 +1,10 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { AuthService } from "../../auth/auth.service";
-import { SessionRepository, UserRepository } from "../../repositories/auth";
+import {
+  AccountRepository,
+  SessionRepository,
+  UserRepository,
+} from "../../repositories/auth";
 import { JwtService } from "@nestjs/jwt";
 import { RegisterInput } from "@lnq/shared";
 import { FastifyReply, FastifyRequest } from "fastify";
@@ -10,8 +14,14 @@ import { ConflictException, UnauthorizedException } from "@nestjs/common";
 import { AuthUser } from "../../auth/interfaces/auth-user.interface";
 import { AccessJwtPayload } from "../../auth/interfaces/jwt.interface";
 import { DAYSINSECONDS } from "../../utils";
-import { Session, User } from "../../db/schema";
-import { RowList } from "postgres";
+import { Account, NewAccount, Session, User } from "../../db/schema";
+import { SafeUser } from "../../auth/interfaces/jwt.interface";
+
+type AccountWithUser = {
+  providerAccountId: string;
+  provider: "GOOGLE";
+  users?: User | SafeUser;
+};
 
 jest.mock("bcrypt");
 jest.mock("jsonwebtoken");
@@ -65,6 +75,7 @@ describe("AuthService", () => {
   let service: AuthService;
   let userRepository: jest.Mocked<UserRepository>;
   let sessionRepository: jest.Mocked<SessionRepository>;
+  let accountRepository: jest.Mocked<AccountRepository>;
   let jwtService: jest.Mocked<JwtService>;
 
   const res = {
@@ -94,6 +105,14 @@ describe("AuthService", () => {
           },
         },
         {
+          provide: AccountRepository,
+          useValue: {
+            create: jest.fn(),
+            findProviderByAccountIdWithUser: jest.fn(),
+            findByUserId: jest.fn(),
+          },
+        },
+        {
           provide: JwtService,
           useValue: {
             sign: jest.fn(),
@@ -105,7 +124,10 @@ describe("AuthService", () => {
     service = module.get<AuthService>(AuthService);
     userRepository = module.get(UserRepository);
     sessionRepository = module.get(SessionRepository);
+    accountRepository = module.get(AccountRepository);
     jwtService = module.get(JwtService);
+
+    service["logger"].error = jest.fn();
 
     jest.clearAllMocks();
 
@@ -1341,6 +1363,167 @@ describe("AuthService", () => {
       const result = await service.validateUser("test@example.com", "password");
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe("validateGoogleUser", () => {
+    it("should return the linked user when account exists", async () => {
+      const account = {
+        providerAccountId: "google-id",
+        provider: "GOOGLE",
+        users: user,
+      } as unknown as Account;
+      accountRepository.findProviderByAccountIdWithUser.mockResolvedValue(
+        account,
+      );
+
+      const result = await service.validateGoogleUser(
+        "google-id",
+        "test@example.com",
+        "Test User",
+      );
+
+      expect(result).toEqual({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      });
+      expect(
+        accountRepository.findProviderByAccountIdWithUser,
+      ).toHaveBeenCalledWith("GOOGLE", "google-id");
+    });
+
+    it("should throw if linked user is inactive", async () => {
+      const inactiveUser = { ...user, isActive: false };
+      const account = {
+        providerAccountId: "google-id",
+        provider: "GOOGLE",
+        users: inactiveUser,
+      } as unknown as Account;
+      accountRepository.findProviderByAccountIdWithUser.mockResolvedValue(
+        account,
+      );
+
+      await expect(
+        service.validateGoogleUser(
+          "google-id",
+          "test@example.com",
+          "Test User",
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it("should throw if email already exists for another user", async () => {
+      accountRepository.findProviderByAccountIdWithUser.mockResolvedValue(
+        undefined,
+      );
+      userRepository.findByEmail.mockResolvedValue({ ...user });
+
+      await expect(
+        service.validateGoogleUser(
+          "google-id",
+          "test@example.com",
+          "Test User",
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it("should create a new user and account when no existing record is found", async () => {
+      accountRepository.findProviderByAccountIdWithUser.mockResolvedValue(
+        undefined,
+      );
+      userRepository.findByEmail.mockResolvedValue(undefined);
+
+      const createdUser = {
+        ...user,
+        id: "new-user",
+      };
+      userRepository.create.mockResolvedValue(createdUser);
+
+      await service.validateGoogleUser(
+        "google-id",
+        "new@example.com",
+        "New User",
+      );
+
+      expect(userRepository.create).toHaveBeenCalledWith({
+        name: "New User",
+        email: "new@example.com",
+        passwordHash: undefined,
+      });
+      expect(accountRepository.create).toHaveBeenCalledWith({
+        userId: "new-user",
+        provider: "GOOGLE",
+        providerAccountId: "google-id",
+      });
+    });
+  });
+
+  describe("linkGoogleAccount", () => {
+    const safeUser: SafeUser = {
+      id: "user-id",
+      email: "test@example.com",
+      name: "Test User",
+      role: "CUSTOMER",
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      phone: null,
+      phoneVerifiedAt: null,
+      emailVerifiedAt: null,
+    };
+    const linkDto = { providerAccountId: "google-account" };
+
+    it("should throw if the request is unauthenticated", async () => {
+      await expect(
+        service.linkGoogleAccount("GOOGLE", {} as SafeUser, linkDto),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it("should throw if the account is linked to another user", async () => {
+      const account = {
+        providerAccountId: "google-account",
+        provider: "GOOGLE",
+        users: { ...safeUser, id: "other-user" },
+      } as unknown as Account;
+      accountRepository.findProviderByAccountIdWithUser.mockResolvedValue(
+        account,
+      );
+
+      await expect(
+        service.linkGoogleAccount("GOOGLE", safeUser, linkDto),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it("should return when the account is already linked to the same user", async () => {
+      const account = {
+        providerAccountId: "google-account",
+        provider: "GOOGLE",
+        users: safeUser,
+      } as unknown as Account;
+      accountRepository.findProviderByAccountIdWithUser.mockResolvedValue(
+        account,
+      );
+
+      await expect(
+        service.linkGoogleAccount("GOOGLE", safeUser, linkDto),
+      ).resolves.toBeUndefined();
+
+      expect(accountRepository.create).not.toHaveBeenCalled();
+    });
+
+    it("should create a new link when one does not yet exist", async () => {
+      accountRepository.findProviderByAccountIdWithUser.mockResolvedValue(
+        undefined,
+      );
+
+      await service.linkGoogleAccount("GOOGLE", safeUser, linkDto);
+
+      expect(accountRepository.create).toHaveBeenCalledWith({
+        userId: safeUser.id,
+        provider: "GOOGLE",
+        providerAccountId: "google-account",
+      });
     });
   });
 });

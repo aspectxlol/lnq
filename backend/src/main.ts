@@ -10,19 +10,17 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import fastifyCookie from "@fastify/cookie";
 
 import { AppModule } from "./app.module";
+import { validateEnv } from "./env";
 
 async function bootstrap() {
+  const env = validateEnv();
   const adapter = new FastifyAdapter();
+  const cookieSecret = env.COOKIE_SECRET;
 
-  // Get the underlying Fastify instance and register cookie plugin
   const fastifyInstance = adapter.getInstance();
-
-  // Register the cookie plugin directly on the Fastify instance
-  // The plugin type doesn't match Fastify's expected signature due to library type definitions,
-  // but it's compatible at runtime. We cast through unknown to safely bridge this gap.
   await fastifyInstance.register(
     fastifyCookie as unknown as Parameters<typeof fastifyInstance.register>[0],
-    { secret: process.env.COOKIE_SECRET || "development-secret" },
+    { secret: cookieSecret },
   );
 
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -36,7 +34,7 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : "*",
+    origin: env.CORS_ORIGIN ? env.CORS_ORIGIN.split(",") : false,
     credentials: true,
   });
 
@@ -56,8 +54,8 @@ async function bootstrap() {
   SwaggerModule.setup("docs", app, documentFactory);
 
   await app.listen({
-    port: process.env.PORT ? parseInt(process.env.PORT) : 3001,
-    host: process.env.HOST || "0.0.0.0",
+    port: env.PORT,
+    host: env.HOST,
   });
 }
 

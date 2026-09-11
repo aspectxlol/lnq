@@ -138,8 +138,12 @@ export const invites = pgTable(
   ],
 );
 
+export type Role = (typeof roles.enumValues)[number];
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+
+export type AuthProvider = (typeof oauthProviders.enumValues)[number];
 
 export type Account = typeof accounts.$inferSelect;
 export type NewAccount = typeof accounts.$inferInsert;
