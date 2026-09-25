@@ -11,6 +11,9 @@ import { AuthService } from "./auth.service";
 import { LocalStrategy } from "./strategies/local.strategy";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { JwtStrategy } from "./strategies/jwt.strategy";
+import { SessionService } from "./service/session.service";
+import { CredentialsService } from "./service/credentials.service";
+import { GoogleAuthService } from "./service/google-auth.service";
 
 @Module({
   imports: [
@@ -22,6 +25,13 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
     RepositoryModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, GoogleStrategy, JwtStrategy],
+  providers: [
+    AuthService,
+    CredentialsService,
+    SessionService,
+    GoogleAuthService,
+    GoogleStrategy,
+    JwtStrategy,
+  ],
 })
 export class AuthModule {}

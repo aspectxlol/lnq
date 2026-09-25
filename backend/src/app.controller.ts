@@ -1,5 +1,10 @@
 import { Controller, Get } from "@nestjs/common";
-import { ApiOkResponse,ApiOperation, ApiTags } from "@nestjs/swagger";
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiServiceUnavailableResponse,
+  ApiTags,
+} from "@nestjs/swagger";
 
 import { AppService } from "./app.service";
 import { HealthResponseDto } from "./app/dto/health-response.dto";
@@ -15,6 +20,7 @@ export class AppController {
     description: "Service health status",
     type: HealthResponseDto,
   })
+  @ApiServiceUnavailableResponse({ description: "Database unavailable" })
   healthcheck() {
     return this.appService.getHealthCheck();
   }

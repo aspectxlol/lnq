@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { DrizzleService } from "../../db/drizzle.service";
 import { Session, sessions, User, users } from "../../db/schema";
@@ -38,7 +38,11 @@ export class SessionRepository {
     )[0];
   }
 
-  async updateRefreshToken(id: string, refreshTokenHash: string) {
+  async updateRefreshToken(
+    id: string,
+    previousRefreshTokenHash: string,
+    refreshTokenHash: string,
+  ) {
     return (
       await this.drizzle.db
         .update(sessions)
@@ -47,7 +51,12 @@ export class SessionRepository {
           expiresAt: new Date(Date.now() + 30 * DAYS),
           lastUsedAt: new Date(),
         })
-        .where(eq(sessions.id, id))
+        .where(
+          and(
+            eq(sessions.id, id),
+            eq(sessions.refreshTokenHash, previousRefreshTokenHash),
+          ),
+        )
         .returning()
     )[0];
   }

@@ -15,13 +15,11 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
-  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiResponse,
   ApiTags,
   ApiUnauthorizedResponse,
-  ApiForbiddenResponse,
 } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
@@ -33,16 +31,21 @@ import { RefreshResponseDto } from "./dto/refresh.dto";
 import { RegisterDto, RegisterResponseDto } from "./dto/register.dto";
 import { JwtGuard } from "./guards/jwt.guard";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
+import { GoogleIdentity } from "./interfaces/google.interface";
 import { GoogleAuthGuard } from "./guards/google-auth.guard";
-import { type LinkProviderDto } from "./interfaces/link.dto";
-import { SafeUser } from "./interfaces/jwt.interface";
-import { GoogleProfileData } from "./interfaces/google.interface";
-import { AuthUser } from "./interfaces/auth-user.interface";
+import { CredentialsService } from "./service/credentials.service";
+import { SessionService } from "./service/session.service";
+import { GoogleAuthService } from "./service/google-auth.service";
 
 @ApiTags("Authentication")
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly authservice: AuthService) {}
+  constructor(
+    private readonly authservice: AuthService,
+    private readonly CredentialsService: CredentialsService,
+    private readonly SessionService: SessionService,
+    private readonly GoogleAuthService: GoogleAuthService,
+  ) {}
 
   @Post("/register")
   @ApiBody({ type: RegisterDto, description: "New account attributes" })
@@ -58,7 +61,7 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    return this.authservice.register(registerDto, req, res);
+    return this.CredentialsService.register(registerDto, req, res);
   }
 
   @Post("/login")
@@ -77,7 +80,7 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    return this.authservice.login(req.user, req, res);
+    return this.SessionService.login(req.user, req, res);
   }
 
   @Post("/refresh")
@@ -91,7 +94,7 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    return this.authservice.refresh(req, res);
+    return this.SessionService.refresh(req, res);
   }
 
   @ApiBearerAuth()
@@ -118,86 +121,36 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    return this.authservice.logout(req, res);
+    return this.SessionService.logout(req, res);
   }
 
   @Get("/google")
   @UseGuards(GoogleAuthGuard)
-  @ApiOperation({ summary: "Redirect to Google for authentication" })
-  @ApiOkResponse({
-    description: "Redirects to Google OAuth consent screen",
-  })
   googleAuth() {}
 
   @ApiBearerAuth()
   @Get("/google/link")
   @UseGuards(JwtGuard)
-  @ApiOperation({ summary: "Start linking Google with the current account" })
-  @ApiOkResponse({ description: "Redirects to Google with linking state" })
-  async linkGoogleAccountStart(
+  async startGoogleLink(
     @Req() req: FastifyRequest,
-    @Res() res: FastifyReply,
+    @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    const user = req.user as SafeUser;
-    const state = this.authservice.createGoogleLinkState(user);
+    const state = this.GoogleAuthService.createGoogleLinkState(req.user);
     return res.redirect(`/auth/google?state=${encodeURIComponent(state)}`);
   }
 
   @Get("/google/callback")
   @UseGuards(GoogleAuthGuard)
-  @ApiOperation({ summary: "Handle Google OAuth callback" })
-  @ApiOkResponse({
-    description: "Returns access token and user info on successful login",
-    type: LoginResponseDto,
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Links Google account when state is provided",
-  })
-  @ApiUnauthorizedResponse({
-    description: "Google profile missing required data or verification failed",
-  })
   async googleAuthCallback(
     @Req() req: FastifyRequest,
     @Query("state") state: string | undefined,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
-    const googleUser = req.user as AuthUser & GoogleProfileData;
-
-    if (state) {
-      const targetUserId = this.authservice.verifyGoogleLinkState(state);
-      const safeUser = await this.authservice.getSafeUserForLink(targetUserId);
-      await this.authservice.linkGoogleAccount("GOOGLE", safeUser, {
-        providerAccountId: googleUser.providerAccountId,
-        email: googleUser.email,
-        name: googleUser.name,
-      });
-      return { message: "Google account linked" };
-    }
-
-    return this.authservice.login(googleUser, req, res);
-  }
-
-  @ApiBearerAuth()
-  @Post("/google/link")
-  @UseGuards(JwtGuard)
-  @ApiOperation({ summary: "Link Google account to current user" })
-  @ApiBody({
-    description: "The Google provider account to associate",
-    schema: {
-      type: "object",
-      properties: {
-        providerAccountId: { type: "string" },
-        name: { type: "string", nullable: true },
-        email: { type: "string", nullable: true },
-      },
-      required: ["providerAccountId"],
-    },
-  })
-  async linkGoogleAccount(
-    @Req() req: FastifyRequest,
-    @Body() linkDto: LinkProviderDto,
-  ) {
-    return this.authservice.linkGoogleAccount("GOOGLE", req.user, linkDto);
+    return this.GoogleAuthService.handleGoogleCallback(
+      req.user as GoogleIdentity,
+      state,
+      req,
+      res,
+    );
   }
 }

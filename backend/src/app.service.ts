@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 
 import { DrizzleService } from "./db/drizzle.service";
 
@@ -15,10 +15,7 @@ export class AppService {
         database: "ok",
       };
     } catch {
-      return {
-        status: 503,
-        message: "database unavailable",
-      };
+      throw new ServiceUnavailableException("database unavailable");
     }
   }
 }

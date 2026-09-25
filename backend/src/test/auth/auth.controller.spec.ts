@@ -1,17 +1,20 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { AuthController } from "../../auth/auth.controller";
 import { AuthService } from "../../auth/auth.service";
+import { CredentialsService } from "../../auth/service/credentials.service";
+import { GoogleAuthService } from "../../auth/service/google-auth.service";
+import { SessionService } from "../../auth/service/session.service";
 import { RegisterInput } from "@lnq/shared";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { ConflictException, UnauthorizedException } from "@nestjs/common";
-import { LinkProviderDto } from "../../auth/interfaces/link.dto";
+import { ConflictException } from "@nestjs/common";
 import { SafeUser } from "../../auth/interfaces/jwt.interface";
 import { GoogleProfileData } from "../../auth/interfaces/google.interface";
 import { AuthUser } from "../../auth/interfaces/auth-user.interface";
 
 describe("AuthController", () => {
   let controller: AuthController;
-  let authService: jest.Mocked<AuthService>;
+  let credentialsService: jest.Mocked<CredentialsService>;
+  let googleAuthService: jest.Mocked<GoogleAuthService>;
 
   const mockReq = {
     ip: "127.0.0.1",
@@ -33,21 +36,30 @@ describe("AuthController", () => {
         {
           provide: AuthService,
           useValue: {
-            register: jest.fn(),
-            login: jest.fn(),
-            logout: jest.fn(),
-            refresh: jest.fn(),
-            linkGoogleAccount: jest.fn(),
+            me: jest.fn(),
+          },
+        },
+        {
+          provide: CredentialsService,
+          useValue: { register: jest.fn() },
+        },
+        {
+          provide: SessionService,
+          useValue: { login: jest.fn(), refresh: jest.fn(), logout: jest.fn() },
+        },
+        {
+          provide: GoogleAuthService,
+          useValue: {
             createGoogleLinkState: jest.fn(),
-            verifyGoogleLinkState: jest.fn(),
-            getSafeUserForLink: jest.fn(),
+            handleGoogleCallback: jest.fn(),
           },
         },
       ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
-    authService = module.get(AuthService);
+    credentialsService = module.get(CredentialsService);
+    googleAuthService = module.get(GoogleAuthService);
 
     jest.clearAllMocks();
     (mockRes.setCookie as jest.Mock).mockReset();
@@ -68,12 +80,12 @@ describe("AuthController", () => {
     };
 
     it("should register a user and return an auth payload", async () => {
-      authService.register.mockResolvedValue(mockAuthResponse);
+      credentialsService.register.mockResolvedValue(mockAuthResponse);
 
       const result = await controller.register(payload, mockReq, mockRes);
 
       expect(result).toEqual(mockAuthResponse);
-      expect(authService.register).toHaveBeenCalledWith(
+      expect(credentialsService.register).toHaveBeenCalledWith(
         payload,
         mockReq,
         mockRes,
@@ -81,7 +93,7 @@ describe("AuthController", () => {
     });
 
     it("should throw ConflictException if the email is already in use", async () => {
-      authService.register.mockRejectedValue(
+      credentialsService.register.mockRejectedValue(
         new ConflictException("Email already exists"),
       );
 
@@ -90,13 +102,13 @@ describe("AuthController", () => {
       ).rejects.toThrow(ConflictException);
     });
 
-    it("should pass the request payload and Fastify contexts down to AuthService", async () => {
-      authService.register.mockResolvedValue(mockAuthResponse);
+    it("should pass the request payload and Fastify contexts to CredentialsService", async () => {
+      credentialsService.register.mockResolvedValue(mockAuthResponse);
 
       await controller.register(payload, mockReq, mockRes);
 
-      expect(authService.register).toHaveBeenCalledTimes(1);
-      expect(authService.register).toHaveBeenCalledWith(
+      expect(credentialsService.register).toHaveBeenCalledTimes(1);
+      expect(credentialsService.register).toHaveBeenCalledWith(
         payload,
         mockReq,
         mockRes,
@@ -104,52 +116,7 @@ describe("AuthController", () => {
     });
   });
 
-  describe("linkGoogleAccount", () => {
-    const linkDto: LinkProviderDto = {
-      providerAccountId: "google-account-id",
-    };
-
-    const authorizedReq = {
-      ...mockReq,
-      user: {
-        id: "user-id",
-        email: "test@example.com",
-        role: "CUSTOMER",
-      },
-    } as unknown as FastifyRequest;
-
-    it("should call the linking service", async () => {
-      authService.linkGoogleAccount.mockResolvedValue(undefined);
-
-      await controller.linkGoogleAccount(authorizedReq, linkDto);
-
-      expect(authService.linkGoogleAccount).toHaveBeenCalledWith(
-        "GOOGLE",
-        authorizedReq.user,
-        linkDto,
-      );
-    });
-
-    it("should resolve when the service succeeds", async () => {
-      authService.linkGoogleAccount.mockResolvedValue(undefined);
-
-      await expect(
-        controller.linkGoogleAccount(authorizedReq, linkDto),
-      ).resolves.toBeUndefined();
-    });
-
-    it("should propagate service errors", async () => {
-      authService.linkGoogleAccount.mockRejectedValue(
-        new UnauthorizedException("User missing"),
-      );
-
-      await expect(
-        controller.linkGoogleAccount(authorizedReq, linkDto),
-      ).rejects.toThrow(UnauthorizedException);
-    });
-  });
-
-  describe("linkGoogleAccountStart", () => {
+  describe("startGoogleLink", () => {
     const safeUser: SafeUser = {
       id: "user-id",
       email: "test@example.com",
@@ -169,11 +136,13 @@ describe("AuthController", () => {
     } as unknown as FastifyRequest;
 
     it("should redirect to Google with state", async () => {
-      authService.createGoogleLinkState.mockReturnValue("state-token");
+      googleAuthService.createGoogleLinkState.mockReturnValue("state-token");
 
-      await controller.linkGoogleAccountStart(req, mockRes);
+      await controller.startGoogleLink(req, mockRes);
 
-      expect(authService.createGoogleLinkState).toHaveBeenCalledWith(safeUser);
+      expect(googleAuthService.createGoogleLinkState).toHaveBeenCalledWith(
+        safeUser,
+      );
       expect(mockRes.redirect).toHaveBeenCalledWith(
         "/auth/google?state=state-token",
       );
@@ -201,21 +170,9 @@ describe("AuthController", () => {
         ...callbackReq,
         query: { state: "state-token" },
       } as FastifyRequest;
-      authService.verifyGoogleLinkState.mockReturnValue("target-user");
-      const safeUser: SafeUser = {
-        id: "target-user",
-        email: "target@example.com",
-        name: "Target",
-        role: "CUSTOMER",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        phone: null,
-        phoneVerifiedAt: null,
-        emailVerifiedAt: null,
-        isActive: true,
-      };
-      (authService.getSafeUserForLink as jest.Mock).mockResolvedValue(safeUser);
-      authService.linkGoogleAccount.mockResolvedValue(undefined);
+      googleAuthService.handleGoogleCallback.mockResolvedValue({
+        message: "Google account linked",
+      });
 
       const result = await controller.googleAuthCallback(
         reqWithState,
@@ -223,26 +180,17 @@ describe("AuthController", () => {
         mockRes,
       );
 
-      expect(authService.verifyGoogleLinkState).toHaveBeenCalledWith(
+      expect(googleAuthService.handleGoogleCallback).toHaveBeenCalledWith(
+        googleUser,
         "state-token",
-      );
-      expect(authService.getSafeUserForLink).toHaveBeenCalledWith(
-        "target-user",
-      );
-      expect(authService.linkGoogleAccount).toHaveBeenCalledWith(
-        "GOOGLE",
-        safeUser,
-        {
-          providerAccountId: googleUser.providerAccountId,
-          email: googleUser.email,
-          name: googleUser.name,
-        },
+        reqWithState,
+        mockRes,
       );
       expect(result).toEqual({ message: "Google account linked" });
     });
 
     it("should delegate to login when no state", async () => {
-      authService.login.mockResolvedValue({
+      googleAuthService.handleGoogleCallback.mockResolvedValue({
         access_token: "token",
         userid: "id",
       });
@@ -253,8 +201,9 @@ describe("AuthController", () => {
         mockRes,
       );
 
-      expect(authService.login).toHaveBeenCalledWith(
+      expect(googleAuthService.handleGoogleCallback).toHaveBeenCalledWith(
         googleUser,
+        undefined,
         callbackReq,
         mockRes,
       );

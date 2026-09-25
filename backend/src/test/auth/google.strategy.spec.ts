@@ -2,12 +2,10 @@ import { UnauthorizedException } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import { Profile } from "passport-google-oauth20";
 import { GoogleStrategy } from "../../auth/strategies/google.strategy";
-import { AuthService } from "../../auth/auth.service";
-import { AuthUser } from "../../auth/interfaces/auth-user.interface";
+import { GoogleAuthService } from "../../auth/service/google-auth.service";
 
 describe("GoogleStrategy", () => {
   let strategy: GoogleStrategy;
-  let authService: jest.Mocked<AuthService>;
 
   beforeAll(() => {
     process.env.GOOGLE_CLIENT_ID = "test-client-id";
@@ -17,21 +15,10 @@ describe("GoogleStrategy", () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        GoogleStrategy,
-        {
-          provide: AuthService,
-          useValue: {
-            validateGoogleUser: jest.fn(),
-          },
-        },
-      ],
+      providers: [GoogleStrategy, { provide: GoogleAuthService, useValue: {} }],
     }).compile();
 
     strategy = module.get<GoogleStrategy>(GoogleStrategy);
-    authService = module.get(AuthService);
-
-    jest.clearAllMocks();
   });
 
   it("should reject profiles without an email", async () => {
@@ -44,7 +31,6 @@ describe("GoogleStrategy", () => {
 
     await strategy.validate("access-token", "refresh-token", profile, done);
 
-    expect(authService.validateGoogleUser).not.toHaveBeenCalled();
     expect(done).toHaveBeenCalledWith(
       expect.objectContaining({ message: "Google profile has no email" }),
     );
@@ -55,27 +41,16 @@ describe("GoogleStrategy", () => {
     const profile = {
       id: "google-id",
       displayName: "Test User",
-      emails: [{ value: "test@example.com" }],
+      emails: [{ value: "test@example.com", verified: true }],
     } as Profile;
-    const authUser = {
-      id: "user-id",
-      email: "test@example.com",
-      role: "CUSTOMER",
-    } as AuthUser;
-    authService.validateGoogleUser.mockResolvedValue(authUser);
 
     await strategy.validate("access-token", "refresh-token", profile, done);
 
-    expect(authService.validateGoogleUser).toHaveBeenCalledWith(
-      "google-id",
-      "test@example.com",
-      "Test User",
-    );
     expect(done).toHaveBeenCalledWith(null, {
-      ...authUser,
       providerAccountId: "google-id",
       email: "test@example.com",
       name: "Test User",
+      emailVerified: true,
     });
   });
 });

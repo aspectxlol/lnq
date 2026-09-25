@@ -1,4 +1,4 @@
-export interface GoogleProfileData {
+export interface GoogleIdentity {
   providerAccountId: string;
   email: string;
   name: string;

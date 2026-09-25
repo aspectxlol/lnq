@@ -11,6 +11,7 @@ import fastifyCookie from "@fastify/cookie";
 
 import { AppModule } from "./app.module";
 import { validateEnv } from "./env";
+import { ZodValidationPipe } from "nestjs-zod";
 
 async function bootstrap() {
   const env = validateEnv();
@@ -32,7 +33,7 @@ async function bootstrap() {
       }),
     },
   );
-
+  app.useGlobalPipes(new ZodValidationPipe());
   app.enableCors({
     origin: env.CORS_ORIGIN ? env.CORS_ORIGIN.split(",") : false,
     credentials: true,
@@ -45,8 +46,9 @@ async function bootstrap() {
     .setContact("Louie", "louie.is-a.dev", "gamernxt6@gmail.com")
     .setLicense("MIT", "https://opensource.org/licenses/MIT")
     .addBearerAuth({
-      type: "apiKey",
-      name: "access-token",
+      type: "http",
+      scheme: "bearer",
+      bearerFormat: "JWT",
     })
     .build();
 

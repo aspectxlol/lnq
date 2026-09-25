@@ -6,20 +6,25 @@ import { AuthController } from "../../auth/auth.controller";
 import { AuthService } from "../../auth/auth.service";
 import { JwtGuard } from "../../auth/guards/jwt.guard";
 import { LocalAuthGuard } from "../../auth/guards/local-auth.guard";
+import { CredentialsService } from "../../auth/service/credentials.service";
+import { GoogleAuthService } from "../../auth/service/google-auth.service";
+import { SessionService } from "../../auth/service/session.service";
 
 describe("AuthController (e2e)", () => {
   let app: INestApplication;
 
   const authServiceMock = {
+    me: jest.fn(),
+  };
+  const credentialsServiceMock = { register: jest.fn() };
+  const sessionServiceMock = {
     login: jest.fn(),
     refresh: jest.fn(),
-    me: jest.fn(),
-    register: jest.fn(),
     logout: jest.fn(),
-    linkGoogleAccount: jest.fn(),
+  };
+  const googleAuthServiceMock = {
     createGoogleLinkState: jest.fn(),
-    verifyGoogleLinkState: jest.fn(),
-    getSafeUserForLink: jest.fn(),
+    handleGoogleCallback: jest.fn(),
   };
 
   const localAuthGuardMock = {
@@ -65,6 +70,18 @@ describe("AuthController (e2e)", () => {
           provide: AuthService,
           useValue: authServiceMock,
         },
+        {
+          provide: CredentialsService,
+          useValue: credentialsServiceMock,
+        },
+        {
+          provide: SessionService,
+          useValue: sessionServiceMock,
+        },
+        {
+          provide: GoogleAuthService,
+          useValue: googleAuthServiceMock,
+        },
       ],
     });
 
@@ -82,12 +99,12 @@ describe("AuthController (e2e)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    authServiceMock.login.mockResolvedValue({
+    sessionServiceMock.login.mockResolvedValue({
       access_token: "access-token",
       userid: "user-id",
     });
 
-    authServiceMock.refresh.mockImplementation(async (req: any) => {
+    sessionServiceMock.refresh.mockImplementation(async (req: any) => {
       const cookie = req.headers?.cookie as string | undefined;
       if (!cookie || !cookie.includes("refresh_token=")) {
         throw new UnauthorizedException("Refresh token not found");
@@ -113,36 +130,36 @@ describe("AuthController (e2e)", () => {
     await app.close();
   });
 
-  it("POST /auth/login returns 201 for valid credentials", async () => {
+  it("should return 201 for valid login credentials", async () => {
     await request(app.getHttpServer())
       .post("/auth/login")
       .send({ email: "valid@example.com", password: "password123" })
       .expect(201);
   });
 
-  it("POST /auth/login returns 401 for invalid credentials", async () => {
+  it("should return 401 for invalid login credentials", async () => {
     await request(app.getHttpServer())
       .post("/auth/login")
       .send({ email: "valid@example.com", password: "wrong" })
       .expect(401);
   });
 
-  it("POST /auth/refresh returns 401 without refresh cookie", async () => {
+  it("should return 401 when refreshing without a cookie", async () => {
     await request(app.getHttpServer()).post("/auth/refresh").expect(401);
   });
 
-  it("POST /auth/refresh returns 201 with refresh cookie", async () => {
+  it("should refresh successfully with a valid cookie", async () => {
     await request(app.getHttpServer())
       .post("/auth/refresh")
       .set("Cookie", ["refresh_token=some-token"])
       .expect(201);
   });
 
-  it("GET /auth/me returns 401 without bearer token", async () => {
+  it("should return 401 when requesting the current user without a bearer token", async () => {
     await request(app.getHttpServer()).get("/auth/me").expect(401);
   });
 
-  it("GET /auth/me returns 200 with bearer token", async () => {
+  it("should return the current user with a valid bearer token", async () => {
     await request(app.getHttpServer())
       .get("/auth/me")
       .set("Authorization", "Bearer test-token")

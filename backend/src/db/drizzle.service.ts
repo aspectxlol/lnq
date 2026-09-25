@@ -9,7 +9,7 @@ export class DrizzleService implements OnModuleDestroy {
   private readonly client = postgres(process.env.DATABASE_URL!, {
     ssl:
       process.env.NODE_ENV === "production"
-        ? { rejectUnauthorized: false }
+        ? { rejectUnauthorized: true }
         : false,
     max: 10,
   });
